@@ -13,11 +13,11 @@ Accept payments in Monero in WooCommerce with CryptoWoo.
 3. Activate plugin.
 
 # Donate
-<img align="left" src="https://blockchain.info/qr?data=Vr7ExTDGkH9LXVFLawsSEcBJjNBdTdacPY&size=150">  
+<img align="left" src="https://blockchain.info/qr?data=4963fPR9LpregvPonApDft43TahwYhrVKehChbWV9BDdCKgZjHNANJiGEkQMYmkQnFMsudZYApUptGGfhLS56pBhCQpMZ3V&size=150">  
 
 Contribute to development of this plugin.
 
-**Vr7ExTDGkH9LXVFLawsSEcBJjNBdTdacPY**
+**4963fPR9LpregvPonApDft43TahwYhrVKehChbWV9BDdCKgZjHNANJiGEkQMYmkQnFMsudZYApUptGGfhLS56pBhCQpMZ3V**
 
 Send Monero.
 
