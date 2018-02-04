@@ -110,16 +110,6 @@ if ( cwxmr_hd_enabled() ) {
 	add_filter( 'cw_get_shifty_coins', 'cwxmr_cw_get_shifty_coins', 10, 1 );
 	add_filter( 'cw_misconfig_notice', 'cwxmr_cryptowoo_misconfig_notice', 10, 2 );
 
-	// HD wallet management
-	add_filter( 'index_key_ids', 'cwxmr_index_key_ids', 10, 1 );
-	add_filter( 'mpk_key_ids', 'cwxmr_mpk_key_ids', 10, 1 );
-	add_filter( 'get_mpk_data_mpk_key', 'cwxmr_get_mpk_data_mpk_key', 10, 3 );
-	add_filter( 'get_mpk_data_network', 'cwxmr_get_mpk_data_network', 10, 3 );
-	add_filter( 'cw_discovery_notice', 'cwxmr_add_currency_to_array', 10, 1 );
-
-	// Currency params
-	add_filter( 'cw_get_currency_params', 'cwxmr_get_currency_params', 10, 2 );
-
 	// Order sorting and prioritizing
 	add_filter( 'cw_sort_unpaid_addresses', 'cwxmr_sort_unpaid_addresses', 10, 2 );
 	add_filter( 'cw_prioritize_unpaid_addresses', 'cwxmr_prioritize_unpaid_addresses', 10, 2 );
@@ -222,51 +212,6 @@ function cwxmr_add_coin_identifier( $coin_identifiers ) {
 	return $coin_identifiers;
 }
 
-
-/**
- * Add address prefix
- *
- * @param $prefixes
- *
- * @return array
- */
-function cwxmr_address_prefixes( $prefixes ) {
-	$prefixes['XMR']          = '47';
-	$prefixes['XMR_MULTISIG'] = '05';
-
-	return $prefixes;
-}
-
-
-/**
- * Add wallet config
- *
- * @param $wallet_config
- * @param $currency
- * @param $options
- *
- * @return array
- */
-function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
-	if ( $currency === 'XMR' ) {
-		$wallet_config                       = array(
-			'coin_client'   => 'monero',
-			'request_coin'  => 'XMR',
-			'multiplier'    => (float) $options['multiplier_xmr'],
-			'safe_address'  => false,
-			'decimals'      => 8,
-			'mpk_key'       => 'cryptowoo_xmr_mpk',
-			'fwd_addr_key'  => 'safe_xmr_address',
-			'threshold_key' => 'forwarding_threshold_xmr'
-		);
-		$wallet_config['hdwallet']           = CW_Validate::check_if_unset( $wallet_config['mpk_key'], $options, false );
-		$wallet_config['coin_protocols'][]   = 'xmr';
-		$wallet_config['forwarding_enabled'] = false;
-	}
-
-	return $wallet_config;
-}
-
 /**
  * Add InstantSend and "raw" zeroconf settings to processing config
  *
@@ -278,11 +223,7 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
  */
 function cwxmr_processing_config( $pc_conf, $currency, $options ) {
 	if ( $currency === 'XMR' ) {
-		$pc_conf['instant_send']       = isset( $options['xmr_instant_send'] ) ? (bool) $options['xmr_instant_send'] : false;
-		$pc_conf['instant_send_depth'] = 5; // TODO Maybe add option
-
-		// Maybe accept "raw" zeroconf
-		$pc_conf['min_confidence'] = isset( $options['cryptowoo_xmr_min_conf'] ) && (int) $options['cryptowoo_xmr_min_conf'] === 0 && isset( $options['xmr_raw_zeroconf'] ) && (bool) $options['xmr_raw_zeroconf'] ? 0 : 1;
+		$pc_conf['min_confidence'] = 1;
 	}
 
 	return $pc_conf;
@@ -326,174 +267,18 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
  */
 function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $processing, $options ) {
 	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "monero.info" ) {
-		$options['custom_api_xmr']     = "http://explorer.monero.info/";
-		$batch                         = $orders[0]->address;
-		$batch_data[ $batch_currency ] = cwxmr_monero_api_tx_update( $batch, $orders[0], $options );
-		usleep( 333333 ); // Max ~3 requests/second TODO remove when we have proper rate limiting
-
-        $chain_height = cwxmr_monero_api_get_block_height($options);
-
-        // Convert to correct format for insight_tx_analysis
-        if (isset($batch_data["XMR"]) && is_object($batch_data["XMR"])) {
-            $xmrData = $batch_data["XMR"];
-            // There is only an incoming payment if address exist
-            if (isset($xmrData->address)) {
-	            $address = $xmrData->address;
-	            $txs = $xmrData->last_txs;
-	            if ($xmrData->received > 0 && $xmrData->balance > 0) {
-		            $txs[0]->confirmations = 1;
-	            } else {
-		            $txs[0]->confirmations = 0;
-	            }
-	            $txs[0]->time = strtotime($orders[0]->created_at);
-	            $txs[0]->txid = $txs[0]->addresses;
-	            $vout = new stdClass();
-	            $vout->scriptPubKey->addresses = [$address];
-	            $vout->value = $xmrData->received;
-	            $txs[0]->vout = [$vout];
-	            $batch_data[$address] = $txs;
-            }
-        } else {
-            // ToDo: log error
-            $batch_data = [];
-        }
-
-        $batch_data = CW_Insight::insight_tx_analysis($orders, $batch_data, $options, $chain_height, true);
+		//ToDo
 	}
 
 	return $batch_data;
 }
 
 function cwxmr_monero_api_get_block_height($options) {
-    $currency = "XMR";
-
-	$bh_transient = sprintf('block-height-%s', $currency);
-	if(false !== ($block_height = get_transient($bh_transient))) {
-		return (int)$block_height;
-	}
-
-	$error = '';
-
-	// Get data
-	$url = $options['custom_api_xmr'] . "api/getblockcount";
-
-	$result = wp_remote_get($url);
-
-	if (is_wp_error($result)) {
-
-		$error = $result->get_error_message();
-
-		// Action hook for Insight API error
-		do_action('cryptowoo_api_error', 'Insight API error: '.$error);
-
-		// Update rate limit transient
-		$limit_transient[$currency] = isset($limit_transient[$currency]['count']) ? array('count' => (int)$limit_transient[$currency]['count'] + 1,
-		                                                                                  'api' => 'insight') : array('count' => 1,
-		                                                                                                              'api' => 'insight');
-		// Keep error data until the next full hour (rate limits refresh every full hour). We'll try again after that time.
-		set_transient('cryptowoo_limit_rates', $limit_transient, CW_AdminMain::seconds_to_next_hour());
-
-	} else {
-		$result = json_decode($result['body']);
-	}
-
-	if(isset($result) && is_integer($result)) {
-		$block_height = $result;
-		set_transient($bh_transient, $block_height, 180); // Cache for 3 minutes
-	} else {
-		$block_height = 0;
-	}
-
-	if ((bool)$error) {
-		file_put_contents(CW_LOG_DIR . 'cryptowoo-tx-update.log', date('Y-m-d H:i:s') . " Insight get_block_height {$error}\r\n", FILE_APPEND);
-	}
-	return (int)$block_height;
+    //ToDo
 }
 
 function cwxmr_monero_api_tx_update($address, $order, $options) {
-    $currency = "XMR";
-	$error = $result = false;
-
-	// Rate limit transient
-	$limit_transient = get_transient('cryptowoo_limit_rates');
-
-	// Get data
-	$url = $options['custom_api_xmr'] . "ext/getaddress/" . $address;
-
-	$result = wp_remote_get($url);
-
-	if (is_wp_error($result)) {
-	    $error = $result->get_error_message();
-
-	    // Error "A valid URL was not provided means Monero address did not receive any payment
-	    if ($error == "A valid URL was not provided.") {
-            $error = false;
-            $result = [];
-        } else {
-		    $error = $error . $url ;
-
-		    // Action hook for API error
-		    do_action('cryptowoo_api_error', 'API error: '.$error);
-
-		    // Update rate limit transient
-		    if(isset($limit_transient[$currency]['count'])) {
-			    $limit_transient[$currency] = array(
-				    'count' => (int)$limit_transient[$currency]['count'] + 1,
-				    'api' => 'explorer.monero.info'
-			    );
-		    } else {
-			    $limit_transient[$currency] = array(
-				    'count' => 1,
-				    'api' => 'explorer.monero.info'
-			    );
-		    }
-		    // Keep error data until the next full hour (rate limits refresh every full hour). We'll try again after that time.
-		    set_transient('cryptowoo_limit_rates', $limit_transient, CW_AdminMain::seconds_to_next_hour());
-		    file_put_contents(CW_LOG_DIR . 'cryptowoo-tx-update.log', date('Y-m-d H:i:s') . " Insight full address error {$error}\r\n", FILE_APPEND);
-        }
-	} else {
-		$result = json_decode($result['body']);
-	}
-	// Delete rate limit transient if the last call was successful
-	if (false !== $limit_transient && false === $error) {
-		delete_transient('cryptowoo_limit_rates');
-	}
-	return false !== $error ? $error : $result;
-}
-
-
-/**
- * Override genesis block
- *
- * @param $genesis
- * @param $field_id
- *
- * @return string
- */
-function cwxmr_validate_custom_api_genesis( $genesis, $field_id ) {
-	if ( in_array( $field_id, array( 'custom_api_xmr', 'processing_fallback_url_xmr' ) ) ) {
-		$genesis = '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f';
-		//$genesis  = '00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048'; // 1
-	}
-
-	return $genesis;
-}
-
-
-/**
- * Override custom API currency
- *
- * @param $currency
- * @param $field_id
- *
- * @return string
- */
-function cwxmr_validate_custom_api_currency( $currency, $field_id ) {
-	if ( in_array( $field_id, array( 'custom_api_xmr', 'processing_fallback_url_xmr' ) ) ) {
-		$currency = 'XMR';
-	}
-
-	return $currency;
+    //ToDo
 }
 
 
@@ -653,28 +438,6 @@ function cwxmr_add_currency_to_array( $currencies ) {
 	$currencies[] = 'XMR';
 
 	return $currencies;
-}
-
-
-/**
- * Override currency params in xpub validation
- *
- * @param $currency_params
- * @param $field_id
- *
- * @return object
- */
-function cwxmr_get_currency_params( $currency_params, $field_id ) {
-	if ( strcmp( $field_id, 'cryptowoo_xmr_mpk' ) === 0 ) {
-		$currency_params                     = new stdClass();
-		$currency_params->strlen             = 111;
-		$currency_params->mand_mpk_prefix    = 'xpub';   // bip32.org & Electrum prefix
-		$currency_params->mand_base58_prefix = '0488b21e'; // Monero
-		$currency_params->currency           = 'XMR';
-		$currency_params->index_key          = 'cryptowoo_xmr_index';
-	}
-
-	return $currency_params;
 }
 
 /**
@@ -917,75 +680,6 @@ function cwxmr_add_fields() {
 	) );
 
 	/*
-	 * Processing API custom URL warning
-	 */
-	Redux::setField( 'cryptowoo_payments', array(
-		'section_id' => 'processing-api',
-		'id'         => 'processing_api_xmr_info',
-		'type'       => 'info',
-		'style'      => 'critical',
-		'icon'       => 'el el-warning-sign',
-		'required'   => array(
-			array( 'processing_api_xmr', 'equals', 'custom' ),
-			array( 'custom_api_xmr', 'equals', '' ),
-		),
-		'desc'       => sprintf( __( 'Please enter a valid URL in the field below to use a custom %s processing API', 'cryptowoo' ), 'Monero' ),
-	) );
-
-	/*
-	 * Custom processing API URL
-	 */
-	Redux::setField( 'cryptowoo_payments', array(
-		'section_id'        => 'processing-api',
-		'id'                => 'custom_api_xmr',
-		'type'              => 'text',
-		'title'             => sprintf( __( '%s Insight API URL', 'cryptowoo' ), 'Monero' ),
-		'subtitle'          => sprintf( __( 'Connect to any %sInsight API%s instance.', 'cryptowoo' ), '<a href="https://github.com/bitpay/insight-api/" title="Insight API" target="_blank">', '</a>' ),
-		'desc'              => sprintf( __( 'The root URL of the API instance:%sLink to address:%sexplorer.monero.info/ext/getaddress/%sRoot URL: %explorer.monero.info%s', 'cryptowoo-xmr-addon' ), '<p>', '<code>', '</code><br>', '<code>', '</code></p>' ),
-		'placeholder'       => 'explorer.monero.info',
-		'required'          => array( 'processing_api_xmr', 'equals', 'custom' ),
-		'validate_callback' => 'redux_validate_custom_api',
-		'ajax_save'         => false,
-		'msg'               => __( 'Invalid XMR Insight API URL', 'cryptowoo' ),
-		'default'           => '',
-		'text_hint'         => array(
-			'title'   => 'Please Note:',
-			'content' => __( 'Make sure the root URL of the API has a trailing slash ( / ).', 'cryptowoo' ),
-		)
-	) );
-
-	// Re-add blockcypher token field
-	Redux::setField( 'cryptowoo_payments', array(
-		'section_id'        => 'processing-api',
-		'id'                => 'blockcypher_token',
-		'type'              => 'text',
-		'ajax_save'         => false, // Force page load when this changes
-		'desc'              => sprintf( __( '%sMore info%s', 'cryptowoo' ), '<a href="http://dev.blockcypher.com/#rate-limits-and-tokens" title="BlockCypher Docs: Rate limits and tokens" target="_blank">', '</a>' ),
-		'title'             => __( 'BlockCypher Token (optional)', 'cryptowoo' ),
-		'subtitle'          => sprintf( __( 'Use the API token from your %sBlockCypher%s account.', 'cryptowoo' ), '<strong><a href="https://accounts.blockcypher.com/" title="BlockCypher account xmrboard" target="_blank">', '</a></strong>' ),
-		'validate_callback' => 'redux_validate_token'
-	) );
-
-	// API Resource control information
-	Redux::setField( 'cryptowoo_payments', array(
-		'section_id'        => 'processing-api-resources',
-		'id'                => 'processing_fallback_url_xmr',
-		'type'              => 'text',
-		'title'             => sprintf( __( 'Blockdozer Monero API Fallback', 'cryptowoo' ), 'Monero' ),
-		'subtitle'          => sprintf( __( 'Fallback to any %sInsight API%s instance in case the Blockdozer API fails. Retry Blockdozer upon beginning of the next hour. Leave empty to disable.', 'cryptowoo' ), '<a href="https://github.com/bitpay/insight-api/" title="Insight API" target="_blank">', '</a>' ),
-		'desc'              => sprintf( __( 'The root URL of the API instance:%sLink to address:%sexplorer.monero.info/ext/getaddress/XtuVUju4Baaj7YXShQu4QbLLR7X2aw9Gc8%sRoot URL: %sexplorer.monero.info%s', 'cryptowoo-xmr-addon' ), '<p>', '<code>', '</code><br>', '<code>', '</code></p>' ),
-		'placeholder'       => 'explorer.monero.info',
-		'required'          => array( 'processing_api_xmr', 'equals', 'blockcypher' ),
-		'validate_callback' => 'redux_validate_custom_api',
-		'ajax_save'         => false,
-		'msg'               => __( 'Invalid XMR Insight API URL', 'cryptowoo' ),
-		'default'           => 'explorer.monero.info',
-		'text_hint'         => array(
-			'title'   => 'Please Note:',
-			'content' => __( 'Make sure the root URL of the API has a trailing slash ( / ).', 'cryptowoo' ),
-		)
-	) );
-	/*
 	 * Preferred exchange rate provider
 	 */
 	Redux::setField( 'cryptowoo_payments', array(
@@ -1056,20 +750,6 @@ function cwxmr_add_fields() {
 		),
 		'desc'       => sprintf( __( 'Please enter a valid URL in the field below to use a custom %s block explorer', 'cryptowoo' ), 'Monero' ),
 	) );
-	Redux::setField( 'cryptowoo_payments', array(
-		'section_id'        => 'rewriting',
-		'id'                => 'custom_block_explorer_xmr',
-		'type'              => 'text',
-		'title'             => sprintf( __( 'Custom %s Block Explorer URL', 'cryptowoo' ), 'Monero' ),
-		'subtitle'          => __( 'Link to a block explorer of your choice.', 'cryptowoo' ),
-		'desc'              => sprintf( __( 'The URL to the page that displays the information for a single address.%sPlease add %s{{ADDRESS}}%s as placeholder for the cryptocurrency address in the URL.%s', 'cryptowoo' ), '<br><strong>', '<code>', '</code>', '</strong>' ),
-		'placeholder'       => 'explorer.monero.info/ext/getaddress/{$address}',
-		'required'          => array( 'preferred_block_explorer_xmr', '=', 'custom' ),
-		'validate_callback' => 'redux_validate_custom_blockexplorer',
-		'ajax_save'         => false,
-		'msg'               => __( 'Invalid custom block explorer URL', 'cryptowoo' ),
-		'default'           => '',
-	) );
 
 	/*
 	 * Currency Switcher plugin decimals
@@ -1091,10 +771,6 @@ function cwxmr_add_fields() {
 		'default'    => 4,
 		'select2'    => array( 'allowClear' => false )
 	) );
-
-
-	// Remove Bitcoin testnet
-	Redux::removeSection( 'cryptowoo_payments', 'wallets-hdwallet-testnet', false );
 
 	/*
 	 * HD wallet section start
