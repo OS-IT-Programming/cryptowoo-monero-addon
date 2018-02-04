@@ -6,7 +6,6 @@ Accept payments in Monero in WooCommerce with CryptoWoo.
 [WooCommerce](https://wordpress.org/plugins/woocommerce/)  
 [CryptoWoo](https://www.cryptowoo.com/shop/cryptowoo/)  
 [CryptoWoo HD Wallet Addon](https://www.cryptowoo.com/shop/cryptowoo-hd-wallet-addon/)
-[MoneroWP](https://github.com/monero-integrations/monerowp)
 
 ## Installation
 1. Download [latest release](https://github.com/Olsm/cryptowoo-bitcoin-cash-addon/releases/latest) as zip.
