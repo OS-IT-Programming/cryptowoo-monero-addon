@@ -111,18 +111,18 @@ if ( cwxmr_hd_enabled() ) {
 	add_filter( 'cw_filter_batch', 'cwxmr_filter_batch', 10, 2 );
 
 	// Add discovery button to currency option
-	//add_filter( 'redux/options/cryptowoo_payments/field/cryptowoo_xmr_mpk', 'hd_wallet_discovery_button' );
-	add_filter( 'redux/options/cryptowoo_payments/field/cryptowoo_xmr_mpk', 'hd_wallet_discovery_button' );
+	//add_filter( 'redux/options/cryptowoo_payments/field/cryptowoo_xmr_address', 'hd_wallet_discovery_button' );
+	//add_filter( 'redux/options/cryptowoo_payments/field/cryptowoo_xmr_address', 'hd_wallet_discovery_button' );
 
 	// Exchange rates
 	add_filter( 'cw_force_update_exchange_rates', 'cwxmr_force_update_exchange_rates', 10, 2 );
 	add_filter( 'cw_cron_update_exchange_data', 'cwxmr_cron_update_exchange_data', 10, 2 );
 
 	// Catch failing processing API (only if processing_fallback is enabled)
-	add_filter( 'cw_get_tx_api_config', 'cwxmr_cw_get_tx_api_config', 10, 3 );
+	//ToDo add_filter( 'cw_get_tx_api_config', 'cwxmr_cw_get_tx_api_config', 10, 3 );
 
 	// Insight API URL
-	add_filter( 'cw_prepare_insight_api', 'cwxmr_override_insight_url', 10, 4 );
+	//add_filter( 'cw_prepare_insight_api', 'cwxmr_override_insight_url', 10, 4 );
 
 	// Add Blockdozer processing
 	add_filter( 'cw_update_tx_details', 'cwxmr_cw_update_tx_details', 10, 5 );
@@ -154,6 +154,51 @@ function cwxmr_coin_icon_color() { ?>
 add_action( 'wp_head', 'cwxmr_coin_icon_color' );
 
 /**
+ * Add address validation
+ *
+ * @param $field
+ * @param $value
+ * @param $existing_value
+ *
+ * @return array
+ */
+function cwma_validate_monero_address( $field, $value, $existing_value ) {
+	if(empty($value) || $value === $existing_value) {
+		$return['value'] = $value;
+		return $return;
+	}
+
+	$address_valid = true;
+
+	if (strpos($value, "4") !== 0) {
+	    $address_valid = false;
+    }
+
+	if (strlen($value) !== 95) {
+		$address_valid = false;
+	}
+
+	$second = substr($value, 1, 1);
+	if (!is_numeric($second) && $second != "A" && $second != "B") {
+		$address_valid = false;
+	}
+
+	if(!$address_valid) {
+
+		$value = $existing_value;
+
+		$field['msg'] = "Monero address invalid! <br>";
+		$return['error'] = $field;
+
+		if(WP_DEBUG) {
+			file_put_contents(CW_LOG_DIR . 'cryptowoo-error.log', date("Y-m-d H:i:s") . __FILE__ . "\n".'redux_validate_address debug - '. $field['id'].' currency: '.var_export($currency, true) .' value: '.var_export($value, true) . ' | result: ' .var_export($return, true) ."\n", FILE_APPEND);
+		}
+	}
+	$return['value'] = $value;
+	return $return;
+}
+
+/**
  * Processing API configuration error
  *
  * @param $enabled
@@ -162,7 +207,9 @@ add_action( 'wp_head', 'cwxmr_coin_icon_color' );
  * @return mixed
  */
 function cwxmr_cryptowoo_misconfig_notice( $enabled, $options ) {
-	$enabled['XMR'] = $options['processing_api_xmr'] === 'disabled' && ( (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_mpk', $options ) );
+	$enabled['XMR'] = $options['processing_api_xmr'] === 'disabled' &&
+                      ( (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) ) &&
+                      ( (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) );
 
 	return $enabled;
 }
@@ -236,21 +283,24 @@ function cwxmr_processing_config( $pc_conf, $currency, $options ) {
  * @return string
  */
 function cwxmr_link_to_address( $url, $address, $currency, $options ) {
+    //ToDo
 	if ( $currency === 'XMR' ) {
-		$url = "http://explorer.monero.info/address/{$address}";
+	    /*
+		$url = "http://xmrchain.net/address/{$address}";
 		if ( $options['preferred_block_explorer_xmr'] === 'custom' && isset( $options['custom_block_explorer_xmr'] ) ) {
 			$url = preg_replace( '/{{ADDRESS}}/', $address, $options['custom_block_explorer_xmr'] );
 			if ( ! wp_http_validate_url( $url ) ) {
 				$url = '#';
 			}
 		}
+	    */
 	}
 
 	return $url;
 }
 
 /**
- * Do explorer.monero.info api processing if chosen
+ * Do xmrchain.net api processing if chosen
  *
  * @param $batch_data
  * @param $batch_currency
@@ -261,7 +311,7 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
  * @return string
  */
 function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $processing, $options ) {
-	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "monero.info" ) {
+	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "xmrchain.net" ) {
 		//ToDo
 	}
 
@@ -287,8 +337,8 @@ function cwxmr_monero_api_tx_update($address, $order, $options) {
  * @return array
  */
 function cwxmr_cryptowoo_is_ready( $enabled, $options, $changed_values ) {
-	$enabled['XMR']           = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_mpk', $options, false );
-	$enabled['XMR_transient'] = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_mpk', $changed_values, false );
+	$enabled['XMR']           = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options, false );
+	$enabled['XMR_transient'] = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $changed_values, false );
 
 	return $enabled;
 }
@@ -344,7 +394,7 @@ function cwxmr_index_key_ids( $index_key_ids ) {
  * @return array
  */
 function cwxmr_mpk_key_ids( $mpk_key_ids ) {
-	$mpk_key_ids['XMR'] = 'cryptowoo_xmr_mpk';
+	$mpk_key_ids['XMR'] = 'cryptowoo_xmr_address';
 
 	return $mpk_key_ids;
 }
@@ -361,29 +411,10 @@ function cwxmr_mpk_key_ids( $mpk_key_ids ) {
  */
 function cwxmr_get_mpk_data_mpk_key( $mpk_key, $currency, $options ) {
 	if ( $currency === 'XMR' ) {
-		$mpk_key = "cryptowoo_xmr_mpk";
+		$mpk_key = "cryptowoo_xmr_address";
 	}
 
 	return $mpk_key;
-}
-
-
-/**
- * Override mpk_data->network
- *
- * @param $mpk_data
- * @param $currency
- * @param $options
- *
- * @return object
- * @throws Exception
- */
-function cwxmr_get_mpk_data_network( $mpk_data, $currency, $options ) {
-	if ( $currency === 'XMR' ) {
-		$mpk_data->network = BitWasp\Bitcoin\Network\NetworkFactory::create( '47', '05', '80' )->setHDPubByte('0488b21e')->setHDPrivByte('0488ade4')->setNetMagicBytes('fabfb5da');
-	}
-
-	return $mpk_data;
 }
 
 /**
@@ -484,6 +515,7 @@ function cwxmr_filter_batch( $address_batch, $address ) {
 }
 
 
+/* ToDo
 /**
  * Fallback on failing API
  *
@@ -491,21 +523,17 @@ function cwxmr_filter_batch( $address_batch, $address ) {
  * @param $currency
  *
  * @return array
- */
+ *
 function cwxmr_cw_get_tx_api_config( $api_config, $currency ) {
 	// ToDo: add Blockcypher
 	if ( $currency === 'XMR' ) {
-		if ( $api_config->tx_update_api === 'monero.info' ) {
-			$api_config->tx_update_api   = 'insight';
-			$api_config->skip_this_round = false;
-		} else {
-			$api_config->tx_update_api   = 'monero.info';
-			$api_config->skip_this_round = false;
-		}
+        $api_config->tx_update_api   = 'xmrchain.net';
+        $api_config->skip_this_round = false;
 	}
 
 	return $api_config;
 }
+*/
 
 /**
  * Override Insight API URL if no URL is found in the settings
@@ -663,7 +691,7 @@ function cwxmr_add_fields() {
 		'title'             => sprintf( __( '%s Processing API', 'cryptowoo' ), 'Monero' ),
 		'subtitle'          => sprintf( __( 'Choose the API provider you want to use to look up %s payments.', 'cryptowoo' ), 'Monero' ),
 		'options'           => array(
-			'monero.info' => 'explorer.monero.info',
+			'xmrchain.net' => 'xmrchain.net',
 			'custom'     => __( 'Custom (insight)', 'cryptowoo' ),
 			'disabled'   => __( 'Disabled', 'cryptowoo' ),
 		),
@@ -726,10 +754,10 @@ function cwxmr_add_fields() {
 		'desc'       => '',
 		'options'    => array(
 			'autoselect' => __( 'Autoselect by processing API', 'cryptowoo' ),
-			'monero.info' => 'explorer.monero.info',
+			'xmrchain.net' => 'xmrchain.net',
 			'custom'     => __( 'Custom (enter URL below)' ),
 		),
-		'default'    => 'monero.info',
+		'default'    => 'xmrchain.net',
 		'select2'    => array( 'allowClear' => false )
 	) );
 
@@ -770,11 +798,12 @@ function cwxmr_add_fields() {
 	/*
 	 * HD wallet section start
 	 */
+
 	Redux::setField( 'cryptowoo_payments', array(
-		'section_id' => 'wallets-hdwallet',
-		'id'         => 'wallets-hdwallet-xmr',
+		'section_id' => 'wallets-other',
+		'id'         => 'wallets-other-xmr',
 		'type'       => 'section',
-		'title'      => __( 'Monero', 'cryptowoo-hd-wallet-addon' ),
+		'title'      => __( 'Monero', 'cryptowoo-monero-addon' ),
 		//'required' => array('testmode_enabled','equals','0'),
 		'icon'       => 'cc-XMR',
 		//'subtitle' => __('Use the field with the correct prefix of your Litecoin MPK. The prefix depends on the wallet client you used to generate the key.', 'cryptowoo-hd-wallet-addon'),
@@ -785,36 +814,23 @@ function cwxmr_add_fields() {
 	 * Extended public key
 	 */
 	Redux::setField( 'cryptowoo_payments', array(
-		'section_id'        => 'wallets-hdwallet',
-		'id'                => 'cryptowoo_xmr_mpk',
+		'section_id'        => 'wallets-other',
+		'id'                => 'cryptowoo_xmr_address',
 		'type'              => 'text',
-		'ajax_save'         => false,
-		'username'          => false,
-		'title'             => sprintf( __( '%sprefix%s', 'cryptowoo-hd-wallet-addon' ), '<b>XMR "xpub..." ', '</b>' ),
-		'desc'              => __( 'Monero HD Wallet Extended Public Key (xpub...)', 'cryptowoo-hd-wallet-addon' ),
-		'validate_callback' => 'redux_validate_mpk',
-		//'required' => array('cryptowoo_xmr_mpk', 'equals', ''),
-		'placeholder'       => 'xpub...',
-		// xpub format
-		'text_hint'         => array(
-			'title'   => 'Please Note:',
-			'content' => sprintf( __( 'If you enter a used key you will have to run the address discovery process after saving this setting.%sUse a dedicated HD wallet (or at least a dedicated xpub) for your store payments to prevent address reuse.', 'cryptowoo-hd-wallet-addon' ), '<br>' ),
-		)
+		'title'             => sprintf( __( '%sprefix%s', 'cryptowoo-monero-addon' ), '<b>XMR "4.."', '</b>' ),
+		'desc'              => __( 'Monero (XMR) address', 'cryptowoo-monero-addon' ),
+		'validate_callback' => 'cwma_validate_monero_address',
+		'placeholder'       => '4..',
 	) );
 	Redux::setField( 'cryptowoo_payments', array(
-		'section_id'        => 'wallets-hdwallet',
-		'id'                => 'derivation_path_xmr',
-		'type'              => 'select',
+		'section_id'        => 'wallets-other',
+		'id'                => 'cryptowoo_xmr_view_key',
+		'type'              => 'text',
 		'subtitle'          => '',
-		'title'             => sprintf( __( '%s Derivation Path', 'cryptowoo-hd-wallet-addon' ), 'Monero' ),
-		'desc'              => __( 'Change the derivation path to match the derivation path of your wallet client.', 'cryptowoo-hd-wallet-addon' ),
-		'validate_callback' => 'redux_validate_derivation_path',
-		'options'           => array(
-			'0/' => __( 'm/0/i (e.g. Electrum Standard Wallet)', 'cryptowoo-hd-wallet-addon' ),
-			'm'  => __( 'm/i (BIP44 Account)', 'cryptowoo-hd-wallet-addon' ),
-		),
-		'default'           => '0/',
-		'select2'           => array( 'allowClear' => false )
+		'title'             => sprintf( __( '%s View Key', 'cryptowoo-monero-addon' ), 'Monero' ),
+		'desc'              => __( 'Change the view key to match the view key of your wallet client.', 'cryptowoo-monero-addon' ),
+		//ToDo: Validate view key
+		//'validate_callback' => 'redux_validate_view_key',
 	) );
 
 	/*
