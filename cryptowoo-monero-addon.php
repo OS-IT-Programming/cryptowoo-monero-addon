@@ -97,15 +97,10 @@ if ( cwxmr_hd_enabled() ) {
 	add_filter( 'cw_get_currency_symbol', 'cwxmr_get_currency_symbol', 10, 2 );
 	add_filter( 'cw_get_enabled_currencies', 'cwxmr_add_coin_identifier', 10, 1 );
 
-	// BIP32 prefixes
-	add_filter( 'address_prefixes', 'cwxmr_address_prefixes', 10, 1 );
-
 	// Custom block explorer URL
 	add_filter( 'cw_link_to_address', 'cwxmr_link_to_address', 10, 4 );
 
 	// Options page validations
-	add_filter( 'validate_custom_api_genesis', 'cwxmr_validate_custom_api_genesis', 10, 2 );
-	add_filter( 'validate_custom_api_currency', 'cwxmr_validate_custom_api_currency', 10, 2 );
 	add_filter( 'cryptowoo_is_ready', 'cwxmr_cryptowoo_is_ready', 10, 3 );
 	add_filter( 'cw_get_shifty_coins', 'cwxmr_cw_get_shifty_coins', 10, 1 );
 	add_filter( 'cw_misconfig_notice', 'cwxmr_cryptowoo_misconfig_notice', 10, 2 );
