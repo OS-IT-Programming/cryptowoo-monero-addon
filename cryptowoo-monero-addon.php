@@ -203,7 +203,45 @@ function cwma_validate_monero_address( $field, $value, $existing_value ) {
 		$return['error'] = $field;
 
 		if(WP_DEBUG) {
-			file_put_contents(CW_LOG_DIR . 'cryptowoo-error.log', date("Y-m-d H:i:s") . __FILE__ . "\n".'redux_validate_address debug - '. $field['id'].' currency: '.var_export($currency, true) .' value: '.var_export($value, true) . ' | result: ' .var_export($return, true) ."\n", FILE_APPEND);
+			file_put_contents(CW_LOG_DIR . 'cryptowoo-error.log', date("Y-m-d H:i:s") . __FILE__ . "\n".'redux_validate_address debug - '. $field['id'].' currency: '.var_export('xmr', true) .' value: '.var_export($value, true) . ' | result: ' .var_export($return, true) ."\n", FILE_APPEND);
+		}
+	}
+	$return['value'] = $value;
+	return $return;
+}
+
+/**
+ * Add view key validation
+ *
+ * @param $field
+ * @param $value
+ * @param $existing_value
+ *
+ * @return array
+ */
+function cwma_validate_monero_view_key( $field, $value, $existing_value ) {
+	$options = get_option('cryptowoo_payments');
+
+	if(empty($options['cryptowoo_xmr_address']) && (empty($value) || $value === $existing_value)) {
+		$return['value'] = $value;
+		return $return;
+	}
+
+	$view_key_valid = true;
+
+	if (empty($value)) {
+		$view_key_valid = false;
+	}
+
+	if(!$view_key_valid) {
+
+		$value = $existing_value;
+
+		$field['msg'] = "Monero view key invalid! <br>";
+		$return['error'] = $field;
+
+		if(WP_DEBUG) {
+			file_put_contents(CW_LOG_DIR . 'cryptowoo-error.log', date("Y-m-d H:i:s") . __FILE__ . "\n".'redux_validate_address debug - '. $field['id'].' currency: '.var_export('xmr', true) .' value: '.var_export($value, true) . ' | result: ' .var_export($return, true) ."\n", FILE_APPEND);
 		}
 	}
 	$return['value'] = $value;
@@ -852,6 +890,7 @@ function cwxmr_add_fields() {
 		'subtitle'          => '',
 		'title'             => sprintf( __( '%s View Key', 'cryptowoo-monero-addon' ), 'Monero' ),
 		'desc'              => __( 'Change the view key to match the view key of your wallet client.', 'cryptowoo-monero-addon' ),
+		'validate_callback' => 'cwma_validate_monero_view_key',
 		//ToDo: Validate view key
 		//'validate_callback' => 'redux_validate_view_key',
 	) );
