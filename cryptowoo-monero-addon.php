@@ -692,7 +692,6 @@ function cwxmr_add_fields() {
 		'subtitle'          => sprintf( __( 'Choose the API provider you want to use to look up %s payments.', 'cryptowoo' ), 'Monero' ),
 		'options'           => array(
 			'xmrchain.net' => 'xmrchain.net',
-			'custom'     => __( 'Custom (insight)', 'cryptowoo' ),
 			'disabled'   => __( 'Disabled', 'cryptowoo' ),
 		),
 		'desc'              => '',
@@ -700,6 +699,18 @@ function cwxmr_add_fields() {
 		'ajax_save'         => false, // Force page load when this changes
 		'validate_callback' => 'redux_validate_processing_api',
 		'select2'           => array( 'allowClear' => false ),
+	) );
+
+	// Re-add blockcypher token field
+	Redux::setField( 'cryptowoo_payments', array(
+		'section_id'        => 'processing-api',
+		'id'                => 'blockcypher_token',
+		'type'              => 'text',
+		'ajax_save'         => false, // Force page load when this changes
+		'desc'              => sprintf( __( '%sMore info%s', 'cryptowoo' ), '<a href="http://dev.blockcypher.com/#rate-limits-and-tokens" title="BlockCypher Docs: Rate limits and tokens" target="_blank">', '</a>' ),
+		'title'             => __( 'BlockCypher Token (optional)', 'cryptowoo' ),
+		'subtitle'          => sprintf( __( 'Use the API token from your %sBlockCypher%s account.', 'cryptowoo' ), '<strong><a href="https://accounts.blockcypher.com/" title="BlockCypher account vtcboard" target="_blank">', '</a></strong>' ),
+		'validate_callback' => 'redux_validate_token'
 	) );
 
 	/*
