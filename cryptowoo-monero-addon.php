@@ -568,7 +568,7 @@ function cwxmr_add_fields() {
 		'section_id' => 'processing-confirmations',
 		'id'         => 'cryptowoo_xmr_min_conf',
 		'type'       => 'spinner',
-		'title'      => sprintf( __( '%s Minimum Confirmations', 'cryptowoo' ), 'Monero' ),
+		'title'      => sprintf( __( '%s Minimum Confirmations', 'cryptowoo' ), 'XMR' ),
 		'desc'       => sprintf( __( 'Minimum number of confirmations for <strong>%s</strong> transactions - %s Confirmation Threshold', 'cryptowoo' ), 'Monero', 'Monero' ),
 		'default'    => 1,
 		'min'        => 1,
