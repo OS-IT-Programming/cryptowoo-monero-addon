@@ -314,7 +314,7 @@ function create_payment_id($size) {
  *
  * @return bool
  */
-function verify_non_rpc($payment_id, $amount, $order_id) {
+function verify_non_rpc($payment_id, $amount, $order, $options) {
 	$tools = new NodeTools();
 	$bc_height = $tools->get_last_block_height();
 	$txs_from_block = $tools->get_txs_from_block($bc_height);
@@ -328,7 +328,7 @@ function verify_non_rpc($payment_id, $amount, $order_id) {
 		$tx_hash = $txs_from_block[$i]['tx_hash'];
 		if(strlen($txs_from_block[$i]['payment_id']) != 0)
 		{
-			$result = $tools->check_tx($tx_hash, $this->address, $this->viewKey);
+			$result = $tools->check_tx($tx_hash, $order->address, $options['monero_view_key']);
 			if($result)
 			{
 				$output_found = $result;
@@ -338,15 +338,17 @@ function verify_non_rpc($payment_id, $amount, $order_id) {
 		}
 		$i++;
 	}
-	if(isset($output_found))
+	if($output_found)
 	{
+		/*
 		$amount_atomic_units = $amount * 1000000000000;
 		if($txs_from_block[$block_index]['payment_id'] == $payment_id && $output_found['amount'] >= $amount_atomic_units)
 		{
-			$this->on_verified($payment_id, $amount_atomic_units, $order_id);
+			//$this->on_verified($payment_id, $amount_atomic_units, $order_id);
 		}
+		*/
 
-		return true;
+		return [$payment_id => $output_found];
 	}
 	return false;
 }
@@ -611,7 +613,10 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
  */
 function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $processing, $options ) {
 	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "xmrchain.net" ) {
-		//ToDo
+		foreach ($orders as $order) {
+		    $amount = (float)$order->crypto_amount / 100000000;
+			$result = verify_non_rpc($order->payment_id, $amount, $order, $options);
+        }
 	}
 
 	return $batch_data;
