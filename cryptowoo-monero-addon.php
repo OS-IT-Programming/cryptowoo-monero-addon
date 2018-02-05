@@ -151,8 +151,11 @@ if ( cwxmr_hd_enabled() ) {
     add_filter('cw_save_payment_details_values_XMR', 'cwxmr_save_payment_details_values', 10, 1);
     add_filter('cw_update_payment_details_values_XMR', 'cwxmr_save_payment_details_values', 10, 1);
 
-    // Add
+    // Add payment id in checkout
 	add_action('cw_display_extra_details_XMR', 'cwxmr_display_payment_id_in_checkout');
+
+	// Add payment_id to qr code
+	add_filter('cw_set_qr_data_XMR', 'cwxmr_set_qr_data', 10, 2);
 }
 
 /**
@@ -200,6 +203,17 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 	}
 
 	return $wallet_config;
+}
+
+/**
+ * @param string $qr_data
+ * @param array $payment_details
+ *
+ * @return string
+ */
+function cwxmr_set_qr_data ( $qr_data, $payment_details ) {
+    $qr_data .= "&tx_payment_id=" . $payment_details->payment_id;
+    return $qr_data;
 }
 
 /**
