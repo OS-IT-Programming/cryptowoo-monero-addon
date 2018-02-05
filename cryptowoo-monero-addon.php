@@ -152,7 +152,7 @@ if ( cwxmr_hd_enabled() ) {
     add_filter('cw_update_payment_details_values_XMR', 'cwxmr_save_payment_details_values', 10, 1);
 
     // Add
-	//cryptowoo_new_order
+	add_action('cw_display_extra_details_XMR', 'cwxmr_display_payment_id_in_checkout');
 }
 
 /**
@@ -200,6 +200,18 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 	}
 
 	return $wallet_config;
+}
+
+/**
+ * @param $payment_details
+ */
+function cwxmr_display_payment_id_in_checkout( $payment_details ) {
+    $payment_id = $payment_details->payment_id;
+    echo "<div class='cw-col-2 cw-bold'>Id
+          </div>
+        <div class='cw-col-10 cw-label'>";
+    echo '<span class="ngh-blocktext copywrap-address" id="payment-id" onclick="selectText("payment-id") >' . $payment_id . '</span>';
+    echo "</div>";
 }
 
 /**
@@ -254,6 +266,16 @@ function cwxmr_save_payment_details_values( $values ) {
  */
 function get_payment_id( $order_id ) {
 	return get_metadata("post", $order_id, 'payment_id', true);
+}
+
+$monero_library = null;
+/** @return Monero_Library */
+function monero_library() {
+    global  $monero_library;
+    if (!isset($monero_library)) {
+        $monero_library = new Monero_Library("localhost", "18080");
+    }
+    return $monero_library;
 }
 
 /**
@@ -316,7 +338,24 @@ function verify_non_rpc($payment_id, $amount, $order_id) {
 }
 
 function on_verified($payment_id, $amount_atomic_units, $order_id) {
+	/*
+    $message = "Payment has been received and confirmed. Thanks!";
+	$this->log->add('Monero_gateway', '[SUCCESS] Payment has been recorded. Congratulations!');
+	$this->confirmed = true;
+	$order = wc_get_order($order_id);
 
+	if($this->is_virtual_in_cart($order_id) == true){
+		$order->update_status('completed', __('Payment has been received', 'monero_gateway'));
+	}
+	else{
+		$order->update_status('processing', __('Payment has been received', 'monero_gateway'));
+	}
+	global $wpdb;
+	$wpdb->query("DROP TABLE $payment_id"); // Drop the table from database after payment has been confirmed as it is no longer needed
+
+	$this->reloadTime = 3000000000000; // Greatly increase the reload time as it is no longer needed
+	return $message;
+	*/
 }
 
 /**
