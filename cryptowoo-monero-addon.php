@@ -135,7 +135,7 @@ if ( cwxmr_hd_enabled() ) {
 	add_action( 'plugins_loaded', 'cwxmr_add_fields', 10 );
 
 	// Check if monero is enabled
-    add_filter('cw_coins_enabled', 'cwxmr_coins_enabled_override', 10, 2);
+    add_filter('cw_coins_enabled', 'cwxmr_coins_enabled_override', 10, 3);
 }
 
 /**
@@ -156,11 +156,22 @@ function cwxmr_coin_icon_color() { ?>
 
 add_action( 'wp_head', 'cwxmr_coin_icon_color' );
 
-function cwxmr_coins_enabled_override( $coins, $options ) {
+/**
+ * @param string[] $coins
+ * @param string[]||string $coin_identifiers
+ * @param array $options
+ *
+ * @return mixed
+ */
+function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
     if (isset($coins['hd_xmr_enabled'])) {
         if (isset($options['cryptowoo_xmr_address']) && isset($options['cryptowoo_xmr_view_key'])) {
             $coins['monero_enabled'] = true;
         }
+    } elseif (is_array($coin_identifiers) && isset($coin_identifiers['XMR'])) {
+	    if (isset($options['cryptowoo_xmr_address']) && isset($options['cryptowoo_xmr_view_key'])) {
+		    $coins['XMR'] = "Monero";
+	    }
     }
     return $coins;
 }
