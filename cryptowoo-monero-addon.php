@@ -157,6 +157,33 @@ function cwxmr_coin_icon_color() { ?>
 add_action( 'wp_head', 'cwxmr_coin_icon_color' );
 
 /**
+ * Add wallet config
+ *
+ * @param $wallet_config
+ * @param $currency
+ * @param $options
+ *
+ * @return array
+ */
+function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
+	if ( $currency === 'XMR' ) {
+		$wallet_config                       = array(
+			'coin_client'   => 'monero',
+			'request_coin'  => 'XMR',
+			'multiplier'    => (float) $options['multiplier_xmr'],
+			'safe_address'  => false,
+			'decimals'      => 8
+		);
+		$wallet_config['hdwallet']           = CW_Validate::check_if_unset( $wallet_config['cryptowoo_xmr_address'], $options, false ) &&
+                                               CW_Validate::check_if_unset( $wallet_config['cryptowoo_xmr_view_key'], $options, false );
+		$wallet_config['coin_protocols'][]   = 'xmr';
+		$wallet_config['forwarding_enabled'] = false;
+	}
+
+	return $wallet_config;
+}
+
+/**
  * @param string[] $coins
  * @param string[]||string $coin_identifiers
  * @param array $options
