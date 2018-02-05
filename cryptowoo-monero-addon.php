@@ -136,6 +136,9 @@ if ( cwxmr_hd_enabled() ) {
 
 	// Check if monero is enabled
     add_filter('cw_coins_enabled', 'cwxmr_coins_enabled_override', 10, 3);
+
+    // get payment address
+    add_filter('cw_create_payment_address_XMR', 'cwxmr_get_payment_address', 10, 2);
 }
 
 /**
@@ -181,6 +184,17 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 	}
 
 	return $wallet_config;
+}
+
+/**
+ * @param string $payment_address
+ * @param array $options
+ */
+function cwxmr_get_payment_address( $payment_address, $options ) {
+    if (CW_Validate::check_if_unset('cryptowoo_xmr_address', $options) && CW_Validate::check_if_unset('cryptowoo_xmr_view_key', $options)) {
+        $payment_address = $options['cryptowoo_xmr_address'];
+    }
+    return $payment_address;
 }
 
 /**
