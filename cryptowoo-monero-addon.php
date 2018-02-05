@@ -133,6 +133,9 @@ if ( cwxmr_hd_enabled() ) {
 
 	// Options page
 	add_action( 'plugins_loaded', 'cwxmr_add_fields', 10 );
+
+	// Check if monero is enabled
+    add_filter('cw_coins_enabled', 'cwxmr_coins_enabled_override', 10, 2);
 }
 
 /**
@@ -152,6 +155,15 @@ function cwxmr_coin_icon_color() { ?>
 <?php }
 
 add_action( 'wp_head', 'cwxmr_coin_icon_color' );
+
+function cwxmr_coins_enabled_override( $coins, $options ) {
+    if (isset($coins['hd_xmr_enabled'])) {
+        if (isset($options['cryptowoo_xmr_address']) && isset($options['cryptowoo_xmr_view_key'])) {
+            $coins['monero_enabled'] = true;
+        }
+    }
+    return $coins;
+}
 
 /**
  * Add address validation
