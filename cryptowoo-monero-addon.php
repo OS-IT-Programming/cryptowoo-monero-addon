@@ -139,6 +139,9 @@ if ( cwxmr_hd_enabled() ) {
 
     // get payment address
     add_filter('cw_create_payment_address_XMR', 'cwxmr_get_payment_address', 10, 2);
+
+    // Validate payment address
+    add_filter('cw_validate_XMR_address', 'cwxmr_address_validate_override', 10, 2);
 }
 
 /**
@@ -218,6 +221,43 @@ function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
 }
 
 /**
+ * @param bool $address_valid
+ * @param string $payment_address
+ *
+ * @return bool
+ */
+function cwxmr_address_validate_override ( $address_valid, $payment_address ) {
+    if ( cwxmr_address_is_valid($payment_address) ) {
+        return true;
+    }
+    return $address_valid;
+}
+
+/**
+ * @param string $payment_address
+ *
+ * @return bool
+ */
+function cwxmr_address_is_valid( $payment_address ) {
+	$address_valid = true;
+
+	if (strpos($payment_address, "4") !== 0) {
+		$address_valid = false;
+	}
+
+	if (strlen($payment_address) !== 95) {
+		$address_valid = false;
+	}
+
+	$second = substr($payment_address, 1, 1);
+	if (!is_numeric($second) && $second != "A" && $second != "B") {
+		$address_valid = false;
+	}
+
+	return $address_valid;
+}
+
+/**
  * Add address validation
  *
  * @param $field
@@ -232,22 +272,7 @@ function cwma_validate_monero_address( $field, $value, $existing_value ) {
 		return $return;
 	}
 
-	$address_valid = true;
-
-	if (strpos($value, "4") !== 0) {
-	    $address_valid = false;
-    }
-
-	if (strlen($value) !== 95) {
-		$address_valid = false;
-	}
-
-	$second = substr($value, 1, 1);
-	if (!is_numeric($second) && $second != "A" && $second != "B") {
-		$address_valid = false;
-	}
-
-	if(!$address_valid) {
+	if(!cwxmr_address_is_valid($value)) {
 
 		$value = $existing_value;
 
