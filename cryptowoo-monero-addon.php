@@ -145,11 +145,11 @@ if ( cwxmr_hd_enabled() ) {
 function cwxmr_coin_icon_color() { ?>
     <style type="text/css">
         i.cc.XMR:before, i.cc.XMR-alt:before {
-            content: "\e92c";
+            content: "\e936";
         }
 
         i.cc.XMR, i.cc.XMR-alt {
-            color: #1b5c2e;
+            color: #FF6600;
         }
     </style>
 <?php }
