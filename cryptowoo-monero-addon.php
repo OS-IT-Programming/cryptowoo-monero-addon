@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  */
 
+require_once('includes/monerowp/library.php');
+
 define( 'CWXMR_VER', '1.0' );
 define( 'CWXMR_FILE', __FILE__ );
 $cw_dir = WP_PLUGIN_DIR . "/cryptowoo";
@@ -138,10 +140,19 @@ if ( cwxmr_hd_enabled() ) {
     add_filter('cw_coins_enabled', 'cwxmr_coins_enabled_override', 10, 3);
 
     // get payment address
-    add_filter('cw_create_payment_address_XMR', 'cwxmr_get_payment_address', 10, 2);
+    add_filter('cw_create_payment_address_XMR', 'cwxmr_get_payment_address', 10, 3);
 
     // Validate payment address
     add_filter('cw_validate_XMR_address', 'cwxmr_address_validate_override', 10, 2);
+
+    // Add payment id to cryptowoo tables
+    add_filter('cw_save_payment_details_keys_XMR', 'cwxmr_save_payment_details_keys', 10, 2);
+    add_filter('cw_update_payment_details_keys_XMR', 'cwxmr_save_payment_details_keys', 10, 2);
+    add_filter('cw_save_payment_details_values_XMR', 'cwxmr_save_payment_details_values', 10, 1);
+    add_filter('cw_update_payment_details_values_XMR', 'cwxmr_save_payment_details_values', 10, 1);
+
+    // Add
+	//cryptowoo_new_order
 }
 
 /**
@@ -161,6 +172,8 @@ function cwxmr_coin_icon_color() { ?>
 <?php }
 
 add_action( 'wp_head', 'cwxmr_coin_icon_color' );
+
+//monerowp:$address?tx_payment_id=$payment_id
 
 /**
  * Add wallet config
@@ -190,14 +203,120 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 }
 
 /**
+ * @param WC_Order $order
  * @param string $payment_address
  * @param array $options
+ *
+ * @return mixed|string
  */
-function cwxmr_get_payment_address( $payment_address, $options ) {
+function cwxmr_get_payment_address( $payment_address, $order, $options ) {
     if (CW_Validate::check_if_unset('cryptowoo_xmr_address', $options) && CW_Validate::check_if_unset('cryptowoo_xmr_view_key', $options)) {
         $payment_address = $options['cryptowoo_xmr_address'];
     }
+
+    // Generate payment ID
+    $payment_id = create_payment_id(32);
+	$order->update_meta_data('payment_id', $payment_id);
+	$order->save();
+
+    //$address = $monero_gateway->verify_non_rpc();
+
     return $payment_address;
+}
+
+/**
+ * @param array $keys
+ * @param int $order_id
+ *
+ * @return mixed
+ */
+function cwxmr_save_payment_details_keys( $keys, $order_id ) {
+    $keys['payment_id'] = get_payment_id($order_id);
+    return $keys;
+}
+
+/**
+ * @param $values
+ *
+ * @param int $order_id
+ *
+ * @return mixed
+ */
+function cwxmr_save_payment_details_values( $values ) {
+	$values[] = "%s";
+    return $values;
+}
+
+/**
+ * @param $order_id
+ *
+ * @return mixed
+ */
+function get_payment_id( $order_id ) {
+	return get_metadata("post", $order_id, 'payment_id', true);
+}
+
+/**
+ * source: monerowp/include/monero_payments.php
+ * Authors: Serhack and cryptochangements
+ *
+ * @param $size
+ *
+ * @return string
+ */
+function create_payment_id($size) {
+	return bin2hex(openssl_random_pseudo_bytes($size));
+}
+
+/**
+ * source: monerowp/include/monero_payments.php
+ * Authors: Serhack and cryptochangements
+ *
+ * @param $payment_id
+ * @param $amount
+ * @param $order_id
+ *
+ * @return bool
+ */
+function verify_non_rpc($payment_id, $amount, $order_id) {
+	$tools = new NodeTools();
+	$bc_height = $tools->get_last_block_height();
+	$txs_from_block = $tools->get_txs_from_block($bc_height);
+	$tx_count = count($txs_from_block) - 1; // The tx at index 0 is a coinbase tx so it can be ignored
+
+	$i = 1;
+	$output_found = false;
+	$block_index = null;
+	while($i <= $tx_count)
+	{
+		$tx_hash = $txs_from_block[$i]['tx_hash'];
+		if(strlen($txs_from_block[$i]['payment_id']) != 0)
+		{
+			$result = $tools->check_tx($tx_hash, $this->address, $this->viewKey);
+			if($result)
+			{
+				$output_found = $result;
+				$block_index = $i;
+				$i = $tx_count; // finish loop
+			}
+		}
+		$i++;
+	}
+	if(isset($output_found))
+	{
+		$amount_atomic_units = $amount * 1000000000000;
+		if($txs_from_block[$block_index]['payment_id'] == $payment_id && $output_found['amount'] >= $amount_atomic_units)
+		{
+			$this->on_verified($payment_id, $amount_atomic_units, $order_id);
+		}
+
+		return true;
+	}
+	return false;
+}
+
+function on_verified($payment_id, $amount_atomic_units, $order_id) {
+
 }
 
 /**
