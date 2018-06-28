@@ -138,6 +138,7 @@ if ( cwxmr_hd_enabled() ) {
 
 	// Check if monero is enabled
     add_filter('cw_coins_enabled_xmr', 'cwxmr_coins_enabled_override', 10, 3);
+    add_filter('cw_coins_enabled', 'cwxmr_coins_enabled_override', 10, 3);
 
     // get payment address
     add_filter('cw_create_payment_address_XMR', 'cwxmr_get_payment_address', 10, 3);
@@ -379,14 +380,27 @@ function on_verified($payment_id, $amount_atomic_units, $order_id) {
  * @param string[]||string $coin_identifiers
  * @param array $options
  *
- * @return mixed
+ * @return string[]
  */
-function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
+function cwxmr_coins_enabled_hd_override( $coins, $coin_identifiers, $options ) {
     if (isset($coins['hd_xmr_enabled'])) {
         if (isset($options['cryptowoo_xmr_address']) && isset($options['cryptowoo_xmr_view_key'])) {
             $coins['monero_enabled'] = true;
         }
-    } elseif (is_array($coin_identifiers) && isset($coin_identifiers['XMR'])) {
+    }
+
+    return $coins;
+}
+
+/**
+ * @param string[] $coins
+ * @param string[]||string $coin_identifiers
+ * @param array $options
+ *
+ * @return string[]
+ */
+function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
+    if (is_array($coin_identifiers) && isset($coin_identifiers['XMR'])) {
 	    if (isset($options['cryptowoo_xmr_address']) && isset($options['cryptowoo_xmr_view_key'])) {
 		    $coins['XMR'] = "Monero";
 	    }
