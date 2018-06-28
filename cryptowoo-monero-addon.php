@@ -146,12 +146,6 @@ if ( cwxmr_hd_enabled() ) {
     // Validate payment address
     add_filter('cw_validate_address_XMR', 'cwxmr_address_validate_override', 10, 1);
 
-    // Add payment id to cryptowoo tables
-    add_filter('cw_save_payment_details_keys_XMR', 'cwxmr_save_payment_details_keys', 10, 2);
-    add_filter('cw_update_payment_details_keys_XMR', 'cwxmr_save_payment_details_keys', 10, 2);
-    add_filter('cw_save_payment_details_values_XMR', 'cwxmr_save_payment_details_values', 10, 1);
-    add_filter('cw_update_payment_details_values_XMR', 'cwxmr_save_payment_details_values', 10, 1);
-
     // Add payment id in checkout
 	add_action('cw_display_extra_details_XMR', 'cwxmr_display_payment_id_in_checkout');
 
@@ -212,9 +206,20 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
  *
  * @return string
  */
-function cwxmr_set_qr_data ( $qr_data, $payment_details ) {
-    $qr_data .= "&tx_payment_id=" . $payment_details->payment_id;
-    return $qr_data;
+function cwxmr_set_qr_data( $qr_data, $payment_details ) {
+	$qr_data .= "&tx_payment_id=" . get_payment_id($payment_details->invoice_number);
+
+	return $qr_data;
+}
+
+
+/**
+ * @param $order_id
+ *
+ * @return mixed
+ */
+function get_payment_id( $order_id ) {
+	return get_post_meta($order_id, 'payment_id', true);
 }
 
 /**
@@ -249,38 +254,6 @@ function cwxmr_get_payment_address( $payment_address, $order, $options ) {
     //$address = $monero_gateway->verify_non_rpc();
 
     return $payment_address;
-}
-
-/**
- * @param array $keys
- * @param int $order_id
- *
- * @return mixed
- */
-function cwxmr_save_payment_details_keys( $keys, $order_id ) {
-    $keys['payment_id'] = get_payment_id($order_id);
-    return $keys;
-}
-
-/**
- * @param $values
- *
- * @param int $order_id
- *
- * @return mixed
- */
-function cwxmr_save_payment_details_values( $values ) {
-	$values[] = "%s";
-    return $values;
-}
-
-/**
- * @param $order_id
- *
- * @return mixed
- */
-function get_payment_id( $order_id ) {
-	return get_metadata("post", $order_id, 'payment_id', true);
 }
 
 $monero_library = null;
@@ -616,7 +589,7 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
  *
  * @param $batch_data
  * @param $batch_currency
- * @param $orders
+ * @param WC_Order[] $orders
  * @param $processing
  * @param $options
  *
@@ -626,7 +599,7 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "xmrchain.net" ) {
 		foreach ($orders as $order) {
 		    $amount = (float)$order->crypto_amount / 100000000;
-			$result = verify_non_rpc($order->payment_id, $amount, $order, $options);
+			$result = verify_non_rpc(get_payment_id($order->get_id()), $amount, $order, $options);
         }
 	}
 
