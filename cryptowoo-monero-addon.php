@@ -31,7 +31,7 @@ $cw_license_path = "$cw_dir/am-license-menu.php";
 if ( ! class_exists( 'CWXMR_License_Menu' ) && file_exists( $cw_license_path ) ) {
 	require_once( $cw_license_path );
 
-	class CWXMR_License_Menu extends CW_License_Menu {};
+	class CWXMR_License_Menu extends CWoo_License_Menu {};
 
 	CWXMR_License_Menu::instance( CWXMR_FILE, 'CryptoWoo Monero Add-on', CWXMR_VER, 'plugin', 'https://www.cryptowoo.com/' );
 }
