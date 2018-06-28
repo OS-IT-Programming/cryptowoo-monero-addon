@@ -137,14 +137,14 @@ if ( cwxmr_hd_enabled() ) {
 	add_action( 'plugins_loaded', 'cwxmr_add_fields', 10 );
 
 	// Check if monero is enabled
-    add_filter('cw_coins_enabled_xmr', 'cwxmr_coins_enabled_override', 10, 3);
+    add_filter('cw_coins_enabled_xmr', 'cwxmr_coins_enabled_hd_override', 10, 3);
     add_filter('cw_coins_enabled', 'cwxmr_coins_enabled_override', 10, 3);
 
     // get payment address
     add_filter('cw_create_payment_address_XMR', 'cwxmr_get_payment_address', 10, 3);
 
     // Validate payment address
-    add_filter('cw_validate_XMR_address', 'cwxmr_address_validate_override', 10, 2);
+    add_filter('cw_validate_address_XMR', 'cwxmr_address_validate_override', 10, 1);
 
     // Add payment id to cryptowoo tables
     add_filter('cw_save_payment_details_keys_XMR', 'cwxmr_save_payment_details_keys', 10, 2);
@@ -414,11 +414,8 @@ function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
  *
  * @return bool
  */
-function cwxmr_address_validate_override ( $address_valid, $payment_address ) {
-    if ( cwxmr_address_is_valid($payment_address) ) {
-        return true;
-    }
-    return $address_valid;
+function cwxmr_address_validate_override ( $payment_address ) {
+    return cwxmr_address_is_valid($payment_address);
 }
 
 /**
