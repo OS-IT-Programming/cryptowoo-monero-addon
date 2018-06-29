@@ -607,47 +607,20 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 			$batch_data = verify_non_rpc( get_payment_id( $order->invoice_number ), $amount, $order, $options );
 
 			// proceed to complete order
-            if ($batch_data) {
-                $tx = &$batch_data[$order->address][0];
-	            $tx->confirmations = 1;
-	            $tx->time = strtotime($order->created_at);
-	            $tx->txid = $tx->tx_hash;
-	            $vout = new stdClass();
-	            $vout->scriptPubKey->addresses = [$order->address];
-	            $vout->value = (float)$tx->output['amount'] / 1e12;
-	            $tx->vout = [$vout];
+			if ( $batch_data ) {
+				$tx                            = &$batch_data[ $order->address ][ 0 ];
+				$tx->confirmations             = 1;
+				$tx->time                      = strtotime( $order->created_at );
+				$tx->txid                      = $tx->tx_hash;
+				$vout                          = new stdClass();
+				$vout->scriptPubKey->addresses = [ $order->address ];
+				$vout->value                   = (float) $tx->output[ 'amount' ] / 1e12;
+				$tx->vout                      = [ $vout ];
 
-            }
-
-
-			$batch_data = CW_Insight::insight_tx_analysis([$order], $batch_data, $options, $chain_height, true);
-
-			/*if (isset($batch_data["VTC"]) && is_object($batch_data["VTC"])) {
-				$vtcData = $batch_data["VTC"];
-				// There is only an incoming payment if address exist
-				if (isset($vtcData->address)) {
-					$address = $vtcData->address;
-					$txs = $vtcData->last_txs;
-					if ($vtcData->received > 0 && $vtcData->balance > 0) {
-						$txs[0]->confirmations = 1;
-					} else {
-						$txs[0]->confirmations = 0;
-					}
-					$txs[0]->time = strtotime($orders[0]->created_at);
-					$txs[0]->txid = $txs[0]->addresses;
-					$vout = new stdClass();
-					$vout->scriptPubKey->addresses = [$address];
-					$vout->value = $vtcData->received;
-					$txs[0]->vout = [$vout];
-					$batch_data[$address] = $txs;
-				}
-        }
-        $batch_data = CW_Insight::insight_tx_analysis($orders, $batch_data, $options, $chain_height, true);*/
+			}
+			return $batch_data = CW_Insight::insight_tx_analysis( [ $order ], $batch_data, $options, $chain_height, true );
 		}
-		//$batch_data = CW_Insight::insight_tx_analysis($orders, $batch_data, $options, $chain_height, true);
 	}
-
-	return $batch_data;
 }
 
 function cwxmr_monero_api_get_block_height($options) {
