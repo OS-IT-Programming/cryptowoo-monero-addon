@@ -291,28 +291,29 @@ function create_payment_id($size) {
 function verify_non_rpc($payment_id, $amount, $order, $options) {
 	$tools = new NodeTools();
 	$bc_height = $tools->get_last_block_height();
-	$txs_from_block = $tools->get_txs_from_block($bc_height);
+	$txs_from_block = $tools->get_txs_from_block(1605619);
 	$tx_count = count($txs_from_block) - 1; // The tx at index 0 is a coinbase tx so it can be ignored
 
 	$i = 1;
-	$output_found = false;
+	$tx_found = false;
 	$block_index = null;
 	while($i <= $tx_count)
 	{
 		$tx_hash = $txs_from_block[$i]['tx_hash'];
 		if(strlen($txs_from_block[$i]['payment_id']) != 0)
 		{
-			$result = $tools->check_tx($tx_hash, $order->address, $options['monero_view_key']);
+			$result = $tools->check_tx($tx_hash, $order->address, $options['cryptowoo_xmr_view_key']);
 			if($result)
 			{
-				$output_found = $result;
+				$tx_found = $txs_from_block[$i];
+				$tx_found['output'] = $result;
 				$block_index = $i;
 				$i = $tx_count; // finish loop
 			}
 		}
 		$i++;
 	}
-	if($output_found)
+	if($tx_found)
 	{
 		/*
 		$amount_atomic_units = $amount * 1000000000000;
@@ -322,7 +323,9 @@ function verify_non_rpc($payment_id, $amount, $order, $options) {
 		}
 		*/
 
-		return [$payment_id => $output_found];
+		// Add extra data for compatibility with insight tx check call
+
+		return [$order->address => [(object)$tx_found]];
 	}
 	return false;
 }
@@ -597,10 +600,51 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
  */
 function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $processing, $options ) {
 	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "xmrchain.net" ) {
+	    $chain_height = 1605619;
 		foreach ($orders as $order) {
-		    $amount = (float)$order->crypto_amount / 100000000;
-			$result = verify_non_rpc(get_payment_id($order->get_id()), $amount, $order, $options);
+			$amount = (float) $order->crypto_amount / 100000000;
+			//$result = monero_library()->get_payments(get_payment_id($order->invoice_number));
+			$batch_data = verify_non_rpc( get_payment_id( $order->invoice_number ), $amount, $order, $options );
+
+			// proceed to complete order
+            if ($batch_data) {
+                $tx = &$batch_data[$order->address][0];
+	            $tx->confirmations = 1;
+	            $tx->time = strtotime($order->created_at);
+	            $tx->txid = $tx->tx_hash;
+	            $vout = new stdClass();
+	            $vout->scriptPubKey->addresses = [$order->address];
+	            $vout->value = (float)$tx->output['amount'] / 1e12;
+	            $tx->vout = [$vout];
+
+            }
+
+
+			$batch_data = CW_Insight::insight_tx_analysis([$order], $batch_data, $options, $chain_height, true);
+
+			/*if (isset($batch_data["VTC"]) && is_object($batch_data["VTC"])) {
+				$vtcData = $batch_data["VTC"];
+				// There is only an incoming payment if address exist
+				if (isset($vtcData->address)) {
+					$address = $vtcData->address;
+					$txs = $vtcData->last_txs;
+					if ($vtcData->received > 0 && $vtcData->balance > 0) {
+						$txs[0]->confirmations = 1;
+					} else {
+						$txs[0]->confirmations = 0;
+					}
+					$txs[0]->time = strtotime($orders[0]->created_at);
+					$txs[0]->txid = $txs[0]->addresses;
+					$vout = new stdClass();
+					$vout->scriptPubKey->addresses = [$address];
+					$vout->value = $vtcData->received;
+					$txs[0]->vout = [$vout];
+					$batch_data[$address] = $txs;
+				}
         }
+        $batch_data = CW_Insight::insight_tx_analysis($orders, $batch_data, $options, $chain_height, true);*/
+		}
+		//$batch_data = CW_Insight::insight_tx_analysis($orders, $batch_data, $options, $chain_height, true);
 	}
 
 	return $batch_data;
