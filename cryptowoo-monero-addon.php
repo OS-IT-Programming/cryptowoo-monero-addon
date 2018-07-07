@@ -314,7 +314,7 @@ function save_last_checked_block_height( $order, $bc_height ) {
 }
 
 /**
- * source: monerowp/include/monero_payments.php
+ * source: monerowp/include/monero_payments.php verify_non_rpc()
  * Authors: Serhack and cryptochangements
  *
  * @param $payment_id
@@ -346,24 +346,7 @@ function verify_non_rpc($payment_id, $amount, $order, $options) {
 	if ( !isset($txs_from_block ) )
 	    return false;
 
-	$tx_count = count($txs_from_block) - 1; // The tx at index 0 is a coinbase tx so it can be ignored
-
-	$i = 1;
-	$tx_found = false;
-	$block_index = null;
-	while ( $i <= $tx_count ) {
-		if ( $txs_from_block[ $i ][ 'payment_id' ] == $payment_id ) {
-			$tx_hash = $txs_from_block[ $i ][ 'tx_hash' ];
-			$result = $tools->check_tx( $tx_hash, $order->address, $options[ 'cryptowoo_xmr_view_key' ] );
-			if ( $result ) {
-				$tx_found             = $txs_from_block[ $i ];
-				$tx_found[ 'output' ] = $result;
-				$block_index          = $i;
-				$i                    = $tx_count; // finish loop
-			}
-		}
-		$i ++;
-	}
+	$tx_found = find_tx_non_rpc($order, $options, $payment_id, $txs_from_block);
 
 	// Try to save last checked block height to order meta
 	if ( $bc_height_last < $bc_height && false === save_last_checked_block_height( $order, $bc_height ) ) {
@@ -384,6 +367,40 @@ function verify_non_rpc($payment_id, $amount, $order, $options) {
 		return [$order->address => [(object)$tx_found]];
 	}
 	return false;
+}
+
+/**
+ * source: monerowp/include/monero_payments.php verify_non_rpc()
+ * Authors: Serhack and cryptochangements
+ *
+ * @param $order
+ * @param $options
+ * @param $txs_from_block
+ * @param $payment_id
+ *
+ * @return bool
+ */
+function find_tx_non_rpc($order, $options, $payment_id, $txs_from_block) {
+	$tools    = new NodeTools();
+	$tx_count = count( $txs_from_block ) - 1; // The tx at index 0 is a coinbase tx so it can be ignored
+
+	$i = 1;
+	$tx_found = false;
+	$block_index = null;
+	while ( $i <= $tx_count ) {
+		if ( $txs_from_block[ $i ][ 'payment_id' ] == $payment_id ) {
+			$tx_hash = $txs_from_block[ $i ][ 'tx_hash' ];
+			$result = $tools->check_tx( $tx_hash, $order->address, $options[ 'cryptowoo_xmr_view_key' ] );
+			if ( $result ) {
+				$tx_found             = $txs_from_block[ $i ];
+				$tx_found[ 'output' ] = $result;
+				$i                    = $tx_count; // finish loop
+			}
+		}
+		$i ++;
+	}
+
+	return $tx_found;
 }
 
 function on_verified($payment_id, $amount_atomic_units, $order_id) {
