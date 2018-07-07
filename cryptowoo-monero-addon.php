@@ -366,8 +366,9 @@ function verify_non_rpc($payment_id, $amount, $order, $options) {
 	}
 
 	// Try to save last checked block height to order meta
-	if ( $bc_height_last < $bc_height && false === save_last_checked_block_height( $order, $bc_height ) )
+	if ( $bc_height_last < $bc_height && false === save_last_checked_block_height( $order, $bc_height ) ) {
 		// TODO: Error logging
+    }
 
 	if($tx_found) {
 		/*
