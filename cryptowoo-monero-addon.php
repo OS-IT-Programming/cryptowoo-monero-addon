@@ -249,6 +249,13 @@ function cwxmr_get_payment_address( $payment_address, $order, $options ) {
     // Generate payment ID
     $payment_id = create_payment_id(32);
 	$order->update_meta_data('payment_id', $payment_id);
+
+	// Find and set current block height
+	// TODO: Error logging if block height not found
+	$bc_height = (new NodeTools())->get_last_block_height();
+	if ( -1 !== $bc_height )
+		$order->update_meta_data('block_height_start', $bc_height);
+
 	$order->save();
 
     //$address = $monero_gateway->verify_non_rpc();
@@ -283,8 +290,17 @@ function create_payment_id($size) {
  *
  * @return int
  */
-function get_last_checked_block_height( $order ) {
-    return (int) get_post_meta($order->order_id, "last_checked_block_height", true);
+function get_block_height_start( $order ) {
+    return (int) get_post_meta($order->order_id, "block_height_start", true);
+}
+
+/**
+ * @param stdClass $order
+ *
+ * @return int
+ */
+function get_block_height_last_checked( $order ) {
+    return (int) get_post_meta($order->order_id, "block_height_last_checked", true);
 }
 
 /**
@@ -294,7 +310,7 @@ function get_last_checked_block_height( $order ) {
  * @return int|true|false
  */
 function save_last_checked_block_height( $order, $bc_height ) {
-    return update_post_meta($order->order_id, "last_checked_block_height", $bc_height);
+    return update_post_meta($order->order_id, "block_height_last_checked", $bc_height);
 }
 
 /**
@@ -308,11 +324,17 @@ function save_last_checked_block_height( $order, $bc_height ) {
  * @return bool
  */
 function verify_non_rpc($payment_id, $amount, $order, $options) {
-	$tools = new NodeTools();
-	$bc_height = $tools->get_last_block_height();
-	$bc_height_last = get_last_checked_block_height( $order );
-	if ($bc_height_last && $bc_height > $bc_height_last)
+	$tools          = new NodeTools();
+	$bc_height      = $tools->get_last_block_height();
+	$bc_height_last = get_block_height_last_checked( $order );
+
+	if ( $bc_height_last && $bc_height > $bc_height_last ) {
+		// Check the next block if we previously checked a block
 		$bc_height = $bc_height_last + 1;
+	} else if ( $bc_height_start = get_block_height_start( $order ) ) {
+		// Check the first block if we did not previously check a block
+		$bc_height = $bc_height_start;
+	}
 
 	// Could not find block height? TODO: Error logging
 	if ( -1 === $bc_height )
