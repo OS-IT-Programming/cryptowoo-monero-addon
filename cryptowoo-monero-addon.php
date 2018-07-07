@@ -314,16 +314,44 @@ function save_last_checked_block_height( $order, $bc_height ) {
 }
 
 /**
+ * source: monerowp/include/monero_payments.php
+ * Authors: Serhack and cryptochangements
+ *
+ * @param $payment_id
+ * @param $order
+ * @param $options
+ *
+ * @return bool|stdClass[]
+ */
+function verify_zero_conf( $payment_id, $order, $options ) {
+	$tools            = new NodeTools();
+	$txs_from_mempool = $tools->get_mempool_txs();
+
+	// Could not find transactions from mempool? TODO: Error logging
+	if ( ! isset( $txs_from_mempool[ 'data' ][ 'txs' ] ) || ! is_array( $txs_from_mempool[ 'data' ][ 'txs' ] ) ) {
+		return false;
+	}
+
+	$txs_from_mempool = $txs_from_mempool[ 'data' ][ 'txs' ];
+	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_mempool );
+
+	if ( is_array( $tx_found ) )
+		return convert_tx_to_insight_format($order, $tx_found, false);
+
+	return false;
+}
+
+/**
  * source: monerowp/include/monero_payments.php verify_non_rpc()
  * Authors: Serhack and cryptochangements
  *
  * @param $payment_id
- * @param $amount
- * @param $order_id
+ * @param $order
+ * @param $options
  *
- * @return bool
+ * @return bool|stdClass[]
  */
-function verify_non_rpc($payment_id, $amount, $order, $options) {
+function verify_non_rpc( $payment_id, $order, $options ) {
 	$tools          = new NodeTools();
 	$bc_height      = $tools->get_last_block_height();
 	$bc_height_last = get_block_height_last_checked( $order );
@@ -337,35 +365,27 @@ function verify_non_rpc($payment_id, $amount, $order, $options) {
 	}
 
 	// Could not find block height? TODO: Error logging
-	if ( -1 === $bc_height )
-	    return false;
+	if ( - 1 === $bc_height ) {
+		return false;
+	}
 
-	$txs_from_block = $tools->get_txs_from_block($bc_height);
+	$txs_from_block = $tools->get_txs_from_block( $bc_height );
 
 	// Could not find transactions from block? TODO: Error logging
-	if ( !isset($txs_from_block ) )
-	    return false;
+	if ( ! isset( $txs_from_block ) || ! is_array( $txs_from_block) ) {
+		return false;
+	}
 
-	$tx_found = find_tx_non_rpc($order, $options, $payment_id, $txs_from_block);
+	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_block );
 
 	// Try to save last checked block height to order meta
 	if ( $bc_height_last < $bc_height && false === save_last_checked_block_height( $order, $bc_height ) ) {
 		// TODO: Error logging
-    }
-
-	if($tx_found) {
-		/*
-		$amount_atomic_units = $amount * 1000000000000;
-		if($txs_from_block[$block_index]['payment_id'] == $payment_id && $output_found['amount'] >= $amount_atomic_units)
-		{
-			//$this->on_verified($payment_id, $amount_atomic_units, $order_id);
-		}
-		*/
-
-		// Add extra data for compatibility with insight tx check call
-
-		return [$order->address => [(object)$tx_found]];
 	}
+
+	if ( is_array( $tx_found ) )
+		return convert_tx_to_insight_format($order, $tx_found, true);
+
 	return false;
 }
 
@@ -375,29 +395,25 @@ function verify_non_rpc($payment_id, $amount, $order, $options) {
  *
  * @param $order
  * @param $options
- * @param $txs_from_block
+ * @param $txs
  * @param $payment_id
  *
  * @return bool
  */
-function find_tx_non_rpc($order, $options, $payment_id, $txs_from_block) {
+function find_tx_non_rpc($order, $options, $payment_id, $txs) {
 	$tools    = new NodeTools();
-	$tx_count = count( $txs_from_block ) - 1; // The tx at index 0 is a coinbase tx so it can be ignored
-
-	$i = 1;
 	$tx_found = false;
-	$block_index = null;
-	while ( $i <= $tx_count ) {
-		if ( $txs_from_block[ $i ][ 'payment_id' ] == $payment_id ) {
-			$tx_hash = $txs_from_block[ $i ][ 'tx_hash' ];
+
+	foreach ( $txs as $tx ) {
+		if ( $tx[ 'payment_id' ] == $payment_id ) {
+			$tx_hash = $tx[ 'tx_hash' ];
 			$result = $tools->check_tx( $tx_hash, $order->address, $options[ 'cryptowoo_xmr_view_key' ] );
 			if ( $result ) {
-				$tx_found             = $txs_from_block[ $i ];
+				$tx_found             = $tx;
 				$tx_found[ 'output' ] = $result;
-				$i                    = $tx_count; // finish loop
+				break;
 			}
 		}
-		$i ++;
 	}
 
 	return $tx_found;
@@ -675,25 +691,36 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "xmrchain.net" ) {
 	    $chain_height = 1605619;
 		foreach ($orders as $order) {
-			$amount = (float) $order->crypto_amount / 100000000;
+			//$amount = (float) $order->crypto_amount / 100000000;
 			//$result = monero_library()->get_payments(get_payment_id($order->invoice_number));
-			$batch_data = verify_non_rpc( get_payment_id( $order->invoice_number ), $amount, $order, $options );
-
-			// proceed to complete order
-			if ( $batch_data ) {
-				$tx                            = &$batch_data[ $order->address ][ 0 ];
-				$tx->confirmations             = 1;
-				$tx->time                      = strtotime( $order->created_at );
-				$tx->txid                      = $tx->tx_hash;
-				$vout                          = new stdClass();
-				$vout->scriptPubKey->addresses = [ $order->address ];
-				$vout->value                   = (float) $tx->output[ 'amount' ] / 1e12;
-				$tx->vout                      = [ $vout ];
-
-			}
-			return $batch_data = CW_Insight::insight_tx_analysis( [ $order ], $batch_data, $options, $chain_height, true );
+            $payment_id = get_payment_id( $order->invoice_number );
+			if ( ! $batch_data = verify_non_rpc( $payment_id, $order, $options ) )
+			    $batch_data = verify_zero_conf( $payment_id, $order, $options );
+			return CW_Insight::insight_tx_analysis( [ $order ], $batch_data, $options, $chain_height, true );
 		}
 	}
+}
+
+/**
+ * Add extra data to tx for compatibility with insight tx check call
+ *
+ * @param stdClass $order
+ * @param array $tx
+ * @param bool $confirmed
+ *
+ * @return stdClass[]
+ */
+function convert_tx_to_insight_format( $order, $tx, $confirmed ) {
+    $tx = (object) $tx;
+	$tx->confirmations             = (int) $confirmed;
+	$tx->time                      = strtotime( $order->created_at );
+	$tx->txid                      = $tx->tx_hash;
+	$vout                          = new stdClass();
+	$vout->scriptPubKey->addresses = [ $order->address ];
+	$vout->value                   = (float) $tx->output[ 'amount' ] / 1e12;
+	$tx->vout                      = [ $vout ];
+
+	return [ $order->address => [ $tx ] ];
 }
 
 function cwxmr_monero_api_get_block_height($options) {
