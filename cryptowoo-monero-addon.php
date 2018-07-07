@@ -281,10 +281,20 @@ function create_payment_id($size) {
 /**
  * @param stdClass $order
  *
- * @return string
+ * @return int
  */
 function get_last_checked_block_height( $order ) {
-    return get_post_meta($order->order_id, "last_checked_block_height", true);
+    return (int) get_post_meta($order->order_id, "last_checked_block_height", true);
+}
+
+/**
+ * @param stdClass $order
+ * @param string $bc_height
+ *
+ * @return int|true|false
+ */
+function save_last_checked_block_height( $order, $bc_height ) {
+    return update_post_meta($order->order_id, "last_checked_block_height", $bc_height);
 }
 
 /**
@@ -299,35 +309,45 @@ function get_last_checked_block_height( $order ) {
  */
 function verify_non_rpc($payment_id, $amount, $order, $options) {
 	$tools = new NodeTools();
-	$bc_height = $bc_height_last = $tools->get_last_block_height();
-	$bc_height_current = (int) get_last_checked_block_height( $order );
-	if ($bc_height_current && $bc_height_last > $bc_height_current)
-		$bc_height = $bc_height_current + 1;
+	$bc_height = $tools->get_last_block_height();
+	$bc_height_last = get_last_checked_block_height( $order );
+	if ($bc_height_last && $bc_height > $bc_height_last)
+		$bc_height = $bc_height_last + 1;
+
+	// Could not find block height? TODO: Error logging
+	if ( -1 === $bc_height )
+	    return false;
 
 	$txs_from_block = $tools->get_txs_from_block($bc_height);
+
+	// Could not find transactions from block? TODO: Error logging
+	if ( !isset($txs_from_block ) )
+	    return false;
+
 	$tx_count = count($txs_from_block) - 1; // The tx at index 0 is a coinbase tx so it can be ignored
 
 	$i = 1;
 	$tx_found = false;
 	$block_index = null;
-	while($i <= $tx_count)
-	{
-		$tx_hash = $txs_from_block[$i]['tx_hash'];
-		if(strlen($txs_from_block[$i]['payment_id']) != 0)
-		{
-			$result = $tools->check_tx($tx_hash, $order->address, $options['cryptowoo_xmr_view_key']);
-			if($result)
-			{
-				$tx_found = $txs_from_block[$i];
-				$tx_found['output'] = $result;
-				$block_index = $i;
-				$i = $tx_count; // finish loop
+	while ( $i <= $tx_count ) {
+		if ( $txs_from_block[ $i ][ 'payment_id' ] == $payment_id ) {
+			$tx_hash = $txs_from_block[ $i ][ 'tx_hash' ];
+			$result = $tools->check_tx( $tx_hash, $order->address, $options[ 'cryptowoo_xmr_view_key' ] );
+			if ( $result ) {
+				$tx_found             = $txs_from_block[ $i ];
+				$tx_found[ 'output' ] = $result;
+				$block_index          = $i;
+				$i                    = $tx_count; // finish loop
 			}
 		}
-		$i++;
+		$i ++;
 	}
-	if($tx_found)
-	{
+
+	// Try to save last checked block height to order meta
+	if ( $bc_height_last < $bc_height && false === save_last_checked_block_height( $order, $bc_height ) )
+		// TODO: Error logging
+
+	if($tx_found) {
 		/*
 		$amount_atomic_units = $amount * 1000000000000;
 		if($txs_from_block[$block_index]['payment_id'] == $payment_id && $output_found['amount'] >= $amount_atomic_units)
