@@ -419,27 +419,6 @@ function find_tx_non_rpc($order, $options, $payment_id, $txs) {
 	return $tx_found;
 }
 
-function on_verified($payment_id, $amount_atomic_units, $order_id) {
-	/*
-    $message = "Payment has been received and confirmed. Thanks!";
-	$this->log->add('Monero_gateway', '[SUCCESS] Payment has been recorded. Congratulations!');
-	$this->confirmed = true;
-	$order = wc_get_order($order_id);
-
-	if($this->is_virtual_in_cart($order_id) == true){
-		$order->update_status('completed', __('Payment has been received', 'monero_gateway'));
-	}
-	else{
-		$order->update_status('processing', __('Payment has been received', 'monero_gateway'));
-	}
-	global $wpdb;
-	$wpdb->query("DROP TABLE $payment_id"); // Drop the table from database after payment has been confirmed as it is no longer needed
-
-	$this->reloadTime = 3000000000000; // Greatly increase the reload time as it is no longer needed
-	return $message;
-	*/
-}
-
 /**
  * @param string[] $coins
  * @param string[]||string $coin_identifiers
@@ -691,8 +670,7 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "xmrchain.net" ) {
 	    $chain_height = 1605619;
 		foreach ($orders as $order) {
-			//$amount = (float) $order->crypto_amount / 100000000;
-			//$result = monero_library()->get_payments(get_payment_id($order->invoice_number));
+			//RPC: $result = monero_library()->get_payments(get_payment_id($order->invoice_number));
             $payment_id = get_payment_id( $order->invoice_number );
 			if ( ( ! $batch_data = verify_non_rpc( $payment_id, $order, $options ) ) && "0" == $order->received_unconfirmed )
 			    $batch_data = verify_zero_conf( $payment_id, $order, $options );
@@ -721,14 +699,6 @@ function convert_tx_to_insight_format( $order, $tx, $confirmed ) {
 	$tx->vout                      = [ $vout ];
 
 	return [ $order->address => [ $tx ] ];
-}
-
-function cwxmr_monero_api_get_block_height($options) {
-    //ToDo
-}
-
-function cwxmr_monero_api_tx_update($address, $order, $options) {
-    //ToDo
 }
 
 
