@@ -279,6 +279,15 @@ function create_payment_id($size) {
 }
 
 /**
+ * @param stdClass $order
+ *
+ * @return string
+ */
+function get_last_checked_block_height( $order ) {
+    return get_post_meta($order->order_id, "last_checked_block_height", true);
+}
+
+/**
  * source: monerowp/include/monero_payments.php
  * Authors: Serhack and cryptochangements
  *
@@ -290,8 +299,12 @@ function create_payment_id($size) {
  */
 function verify_non_rpc($payment_id, $amount, $order, $options) {
 	$tools = new NodeTools();
-	$bc_height = $tools->get_last_block_height();
-	$txs_from_block = $tools->get_txs_from_block(1605619);
+	$bc_height = $bc_height_last = $tools->get_last_block_height();
+	$bc_height_current = (int) get_last_checked_block_height( $order );
+	if ($bc_height_current && $bc_height_last > $bc_height_current)
+		$bc_height = $bc_height_current + 1;
+
+	$txs_from_block = $tools->get_txs_from_block($bc_height);
 	$tx_count = count($txs_from_block) - 1; // The tx at index 0 is a coinbase tx so it can be ignored
 
 	$i = 1;
