@@ -694,7 +694,7 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 			//$amount = (float) $order->crypto_amount / 100000000;
 			//$result = monero_library()->get_payments(get_payment_id($order->invoice_number));
             $payment_id = get_payment_id( $order->invoice_number );
-			if ( ! $batch_data = verify_non_rpc( $payment_id, $order, $options ) )
+			if ( ( ! $batch_data = verify_non_rpc( $payment_id, $order, $options ) ) && "0" == $order->received_unconfirmed )
 			    $batch_data = verify_zero_conf( $payment_id, $order, $options );
 			return CW_Insight::insight_tx_analysis( [ $order ], $batch_data, $options, $chain_height, true );
 		}
