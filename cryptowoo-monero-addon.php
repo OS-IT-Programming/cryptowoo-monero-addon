@@ -234,11 +234,12 @@ function get_payment_id( $order_id ) {
  */
 function cwxmr_display_payment_id_in_checkout( $payment_details ) {
     $payment_id = get_payment_id($payment_details->invoice_number);
-    echo "<div class='cw-col-2 cw-bold'>Id
-          </div>
-        <div class='cw-col-10 cw-label'>";
-    echo '<span class="ngh-blocktext copywrap-address" id="payment-id" onclick="selectText("payment-id") >' . $payment_id . '</span>';
-    echo "</div>";
+    ?>
+    <div class="cw-col-2 cw-bold">Id</div>
+    <div class="cw-col-10 cw-label">
+        <span class="ngh-blocktext copywrap-address" id="payment-id" onclick="selectText('payment-id')" ><?php esc_html_e($payment_id); ?></span>
+    </div>
+    <?php
 }
 
 /**
