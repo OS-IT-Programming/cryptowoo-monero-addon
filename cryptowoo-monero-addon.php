@@ -207,6 +207,13 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
  * @return string
  */
 function cwxmr_set_qr_data( $qr_data, $payment_details ) {
+	preg_match('/label=(.*?)%20Order/', $qr_data, $match);
+	$store_name = $match[1];
+
+    $qr_data = str_replace("amount", "tx_amount", $qr_data);
+    $qr_data = str_replace("label", "tx_description", $qr_data);
+    $qr_data = str_replace("recipient_name", "tx_description", $qr_data);
+    $qr_data .= "&recipient_name=$store_name";
 	$qr_data .= "&tx_payment_id=" . get_payment_id($payment_details->invoice_number);
 
 	return $qr_data;
