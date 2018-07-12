@@ -647,7 +647,7 @@ function cwxmr_processing_config( $pc_conf, $currency, $options ) {
  */
 function cwxmr_link_to_address( $url, $address, $currency, $options ) {
 	if ( $currency === 'XMR' ) {
-		$url = "http://xmrchain.net/address/{$address}";
+		$url = "http://xmrchain.net/search?value={$address}";
 		if ( $options['preferred_block_explorer_xmr'] === 'custom' && isset( $options['custom_block_explorer_xmr'] ) ) {
 			$url = preg_replace( '/{{ADDRESS}}/', $address, $options['custom_block_explorer_xmr'] );
 			if ( ! wp_http_validate_url( $url ) ) {
