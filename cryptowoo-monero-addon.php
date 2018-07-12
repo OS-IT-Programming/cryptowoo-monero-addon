@@ -668,12 +668,13 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
  */
 function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $processing, $options ) {
 	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "xmrchain.net" ) {
-	    $chain_height = 1605619;
 		foreach ($orders as $order) {
 			//RPC: $result = monero_library()->get_payments(get_payment_id($order->invoice_number));
             $payment_id = get_payment_id( $order->invoice_number );
 			if ( ( ! $batch_data = verify_non_rpc( $payment_id, $order, $options ) ) && "0" == $order->received_unconfirmed )
 			    $batch_data = verify_zero_conf( $payment_id, $order, $options );
+
+			$chain_height = get_block_height_last_checked($order);
 			return CW_Insight::insight_tx_analysis( [ $order ], $batch_data, $options, $chain_height, true );
 		}
 	}
