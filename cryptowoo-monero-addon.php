@@ -646,9 +646,7 @@ function cwxmr_processing_config( $pc_conf, $currency, $options ) {
  * @return string
  */
 function cwxmr_link_to_address( $url, $address, $currency, $options ) {
-    //ToDo
 	if ( $currency === 'XMR' ) {
-	    /*
 		$url = "http://xmrchain.net/address/{$address}";
 		if ( $options['preferred_block_explorer_xmr'] === 'custom' && isset( $options['custom_block_explorer_xmr'] ) ) {
 			$url = preg_replace( '/{{ADDRESS}}/', $address, $options['custom_block_explorer_xmr'] );
@@ -656,7 +654,6 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
 				$url = '#';
 			}
 		}
-	    */
 	}
 
 	return $url;
