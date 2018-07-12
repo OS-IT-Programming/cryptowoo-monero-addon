@@ -193,7 +193,7 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 		);
 		$wallet_config['hdwallet']           = CW_Validate::check_if_unset( $wallet_config['cryptowoo_xmr_address'], $options, false ) &&
                                                CW_Validate::check_if_unset( $wallet_config['cryptowoo_xmr_view_key'], $options, false );
-		$wallet_config['coin_protocols'][]   = 'xmr';
+		$wallet_config['coin_protocols'][]   = 'monero';
 		$wallet_config['forwarding_enabled'] = false;
 	}
 
