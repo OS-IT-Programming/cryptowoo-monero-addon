@@ -370,7 +370,10 @@ function verify_non_rpc( $payment_id, $order, $options ) {
 	$bc_height      = $tools->get_last_block_height();
 	$bc_height_last = get_block_height_last_checked( $order );
 
-	if ( $bc_height_last && $bc_height > $bc_height_last ) {
+	if ( $bc_height_last == $bc_height ) {
+		// Do not check block if already checked
+		return false;
+	} else if ( $bc_height_last && $bc_height > $bc_height_last ) {
 		// Check the next block if we previously checked a block
 		$bc_height = $bc_height_last + 1;
 	} else if ( $bc_height_start = get_block_height_start( $order ) ) {
