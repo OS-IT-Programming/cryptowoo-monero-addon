@@ -349,8 +349,9 @@ function verify_zero_conf( $payment_id, $order, $options ) {
 	$txs_from_mempool = $txs_from_mempool[ 'data' ][ 'txs' ];
 	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_mempool );
 
-	if ( is_array( $tx_found ) )
-		return convert_tx_to_insight_format($order, $tx_found, false);
+	if ( is_array( $tx_found ) ) {
+		return convert_tx_to_insight_format( $order, $tx_found, false );
+	}
 
 	return false;
 }
@@ -638,7 +639,11 @@ function cwxmr_add_coin_identifier( $coin_identifiers ) {
  */
 function cwxmr_processing_config( $pc_conf, $currency, $options ) {
 	if ( $currency === 'XMR' ) {
-		$pc_conf['min_confidence'] = 1;
+		$pc_conf[ 'instant_send' ]       = isset( $options[ 'xmr_instant_send' ] ) ? (bool) $options[ 'xmr_instant_send' ] : false;
+		$pc_conf[ 'instant_send_depth' ] = 5; // TODO Maybe add option
+
+		// Maybe accept "raw" zeroconf
+		$pc_conf[ 'min_confidence' ] = isset( $options[ 'cryptowoo_xmr_min_conf' ] ) && (int) $options[ 'cryptowoo_xmr_min_conf' ] === 0 && isset( $options[ 'xmr_raw_zeroconf' ] ) && (bool) $options[ 'xmr_raw_zeroconf' ] ? 0 : 1;
 	}
 
 	return $pc_conf;
@@ -955,13 +960,11 @@ function cwxmr_add_fields() {
 		'title'      => sprintf( __( '%s Minimum Confirmations', 'cryptowoo' ), 'XMR' ),
 		'desc'       => sprintf( __( 'Minimum number of confirmations for <strong>%s</strong> transactions - %s Confirmation Threshold', 'cryptowoo' ), 'Monero', 'Monero' ),
 		'default'    => 1,
-		'min'        => 1,
+		'min'        => 0,
 		'step'       => 1,
 		'max'        => 1,
 	) );
 
-	// ToDo: Enable raw zeroconf
-	/*
 	Redux::setField( 'cryptowoo_payments', array(
 		'section_id' => 'processing-confirmations',
 		'id'         => 'xmr_raw_zeroconf',
@@ -975,11 +978,8 @@ function cwxmr_add_fields() {
 			array( 'cryptowoo_xmr_min_conf', '=', 0 )
 		),
 	) );
-	*/
 
 
-	/*
-	 * ToDo: Zeroconf order amount threshold
 	Redux::setField( 'cryptowoo_payments', array(
 		'section_id' => 'processing-zeroconf',
 		'id'         => 'cryptowoo_max_unconfirmed_xmr',
@@ -1004,63 +1004,6 @@ function cwxmr_add_fields() {
 		'title'      => sprintf( __( '%s Zeroconf Threshold Disabled', 'cryptowoo' ), 'Monero' ),
 		'desc'       => sprintf( __( 'This option is disabled because you do not accept unconfirmed %s payments.', 'cryptowoo' ), 'Monero' ),
 	) );
-	 */
-
-
-	/*
-	// Remove 3rd party confidence
-	Redux::removeField( 'cryptowoo_payments', 'custom_api_confidence', false );
-
-	/*
-	 * Confidence warning
-	 * /
-	Redux::setField( 'cryptowoo_payments', array(
-		'section_id'        => 'processing-confidence',
-			'id'    => 'xmr_confidence_warning',
-			'type'  => 'info',
-			'title' => __('Be careful!', 'cryptowoo'),
-			'style' => 'warning',
-			'desc'  => __('Accepting transactions with a low confidence value increases your exposure to double-spend attacks. Only proceed if you don\'t automatically deliver your products and know what you\'re doing.', 'cryptowoo'),
-			'required' => array('min_confidence_xmr', '<', 95)
-	));
-
-	/*
-	 * Transaction confidence
-	 * /
-
-	Redux::setField( 'cryptowoo_payments', array(
-			'section_id'        => 'processing-confidence',
-			'id'      => 'min_confidence_xmr',
-			'type'    => 'switch',
-			'title'   => sprintf(__('%s transaction confidence (%s)', 'cryptowoo'), 'Monero', '%'),
-			//'desc'    => '',
-			'required' => array('cryptowoo_xmr_min_conf', '<', 1),
-
-	));
-
-
-	Redux::setField( 'cryptowoo_payments', array(
-		'section_id' => 'processing-confidence',
-		'id'      => 'min_confidence_xmr_notice',
-		'type'    => 'info',
-		'style' => 'info',
-		'notice'    => false,
-		'required' => array('cryptowoo_xmr_min_conf', '>', 0),
-		'icon'  => 'fa fa-info-circle',
-		'title'   => sprintf(__('%s "Raw" Zeroconf Disabled', 'cryptowoo'), 'Monero'),
-		'desc'    => sprintf(__('This option is disabled because you do not accept unconfirmed %s payments.', 'cryptowoo'), 'Monero'),
-	));
-
-	// Re-add 3rd party confidence
-	Redux::setField( 'cryptowoo_payments', array(
-		'section_id'        => 'processing-confidence',
-		'id'       => 'custom_api_confidence',
-		'type'     => 'switch',
-		'title'    => __('Third Party Confidence Metrics', 'cryptowoo'),
-		'subtitle' => __('Enable this to use the chain.so confidence metrics when accepting zeroconf transactions with your custom Bitcoin, Litecoin, or Dogecoin API.', 'cryptowoo'),
-		'default'  => false,
-	));
-    */
 
 	// Remove blockcypher token field
 	Redux::removeField( 'cryptowoo_payments', 'blockcypher_token', false );
