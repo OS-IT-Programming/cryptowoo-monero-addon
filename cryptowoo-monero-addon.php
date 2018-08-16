@@ -233,7 +233,7 @@ function get_payment_id( $order_id ) {
  * @param array|WC_Order $payment_details
  */
 function cwxmr_display_payment_id_in_checkout( $payment_details ) {
-	if ( is_array( $payment_details ) ) {
+	if ( $payment_details instanceof  stdClass) {
 		$payment_id = get_payment_id( $payment_details->invoice_number );
 		?>
         <div class="cw-col-2 cw-bold">Id</div>
