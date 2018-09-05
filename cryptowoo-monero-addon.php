@@ -1038,6 +1038,24 @@ function cwxmr_add_fields() {
 		'select2'           => array( 'allowClear' => false ),
 	) );
 
+	Redux::setField( 'cryptowoo_payments', array(
+		'section_id' => 'processing-api',
+		'id'        => 'processing_api_xmr_privacy',
+		'type'      => 'info',
+		'notice'    => false,
+		'icon'      => 'fa fa-eye fa-2x',
+		'title'     => __('A note on privacy:', 'cryptowoo'),
+		'desc'      => __( "When you validate transactions with your private viewkey,
+		your viewkey is sent to (but not stored on) xmrchain.net over HTTPS. 
+		This could potentially allow an attacker to see your incoming, but not outgoing, 
+		transactions if he were to get his hands on your viewkey. Even if this were to happen, 
+		your funds would still be safe and it would be impossible for somebody to steal your money. 
+		For maximum privacy use your own monero-wallet-rpc instance.", 'cryptowoo' ),
+		'required' => array(
+			array('processing_api_xmr', '=', 'xmrchain.net'),
+		)
+	) );
+
 	// Re-add blockcypher token field
 	Redux::setField( 'cryptowoo_payments', array(
 		'section_id'        => 'processing-api',
