@@ -1193,8 +1193,8 @@ function cwxmr_add_fields() {
 		'id'                => 'cryptowoo_xmr_view_key',
 		'type'              => 'text',
 		'subtitle'          => '',
-		'title'             => sprintf( __( '%s View Key', 'cryptowoo-monero-addon' ), 'Monero' ),
-		'desc'              => __( 'Change the view key to match the view key of your wallet client.', 'cryptowoo-monero-addon' ),
+		'title'             => sprintf( __( '%s Secret View Key', 'cryptowoo-monero-addon' ), 'Monero' ),
+		'desc'              => __( 'Change the view key to match the secret view key of your wallet client.', 'cryptowoo-monero-addon' ),
 		'validate_callback' => 'cwma_validate_monero_view_key',
 		//ToDo: Validate view key
 		//'validate_callback' => 'redux_validate_view_key',
