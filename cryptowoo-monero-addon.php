@@ -684,13 +684,19 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 		foreach ($orders as $order) {
 			//RPC: $result = monero_library()->get_payments(get_payment_id($order->invoice_number));
             $payment_id = get_payment_id( $order->invoice_number );
-			if ( ( ! $batch_data = verify_non_rpc( $payment_id, $order, $options ) ) && "0" == $order->received_unconfirmed )
-			    $batch_data = verify_zero_conf( $payment_id, $order, $options );
+			if ( ( ! $order_batch = verify_non_rpc( $payment_id, $order, $options ) ) && "0" == $order->received_unconfirmed ) {
+				$order_batch = verify_zero_conf( $payment_id, $order, $options );
+            }
 
 			$chain_height = get_block_height_last_checked($order);
-			return CW_Insight::insight_tx_analysis( [ $order ], $batch_data, $options, $chain_height, true );
+			$order_batch = CW_Insight::insight_tx_analysis( [ $order ], $order_batch, $options, $chain_height, true );
+			$order_batch[$order->invoice_number]['status'] = str_replace("Insight", $options['processing_api_xmr'], $order_batch[$order->invoice_number]['status']);
+
+			$batch_data[$batch_currency][$order->invoice_number] = $order_batch[$order->invoice_number];
 		}
 	}
+
+	return $batch_data;
 }
 
 /**
