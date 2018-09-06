@@ -17,14 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Text Domain: cryptowoo-xmr-addon
  * Domain Path: /lang
  * WC tested up to: 3.2.5
- *
  */
 
-require_once('includes/monerowp/library.php');
+require_once( 'includes/monerowp/library.php' );
 
 define( 'CWXMR_VER', '1.0' );
 define( 'CWXMR_FILE', __FILE__ );
-$cw_dir = WP_PLUGIN_DIR . "/cryptowoo";
+$cw_dir          = WP_PLUGIN_DIR . "/cryptowoo";
 $cw_license_path = "$cw_dir/am-license-menu.php";
 
 // Load the plugin update library if it is not already loaded
@@ -137,20 +136,20 @@ if ( cwxmr_hd_enabled() ) {
 	add_action( 'plugins_loaded', 'cwxmr_add_fields', 10 );
 
 	// Check if monero is enabled
-    add_filter('cw_coins_enabled_xmr', 'cwxmr_coins_enabled_hd_override', 10, 3);
-    add_filter('cw_coins_enabled', 'cwxmr_coins_enabled_override', 10, 3);
+	add_filter( 'cw_coins_enabled_xmr', 'cwxmr_coins_enabled_hd_override', 10, 3 );
+	add_filter( 'cw_coins_enabled', 'cwxmr_coins_enabled_override', 10, 3 );
 
-    // get payment address
-    add_filter('cw_create_payment_address_XMR', 'cwxmr_get_payment_address', 10, 3);
+	// get payment address
+	add_filter( 'cw_create_payment_address_XMR', 'cwxmr_get_payment_address', 10, 3 );
 
-    // Validate payment address
-    add_filter('cw_validate_address_XMR', 'cwxmr_address_validate_override', 10, 1);
+	// Validate payment address
+	add_filter( 'cw_validate_address_XMR', 'cwxmr_address_validate_override', 10, 1 );
 
-    // Add payment id in checkout
-	add_action('cw_display_extra_details_XMR', 'cwxmr_display_payment_id_in_checkout');
+	// Add payment id in checkout
+	add_action( 'cw_display_extra_details_XMR', 'cwxmr_display_payment_id_in_checkout' );
 
 	// Add payment_id to qr code
-	add_filter('cw_set_qr_data_XMR', 'cwxmr_set_qr_data', 10, 2);
+	add_filter( 'cw_set_qr_data_XMR', 'cwxmr_set_qr_data', 10, 2 );
 }
 
 /**
@@ -184,17 +183,16 @@ add_action( 'wp_head', 'cwxmr_coin_icon_color' );
  */
 function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 	if ( $currency === 'XMR' ) {
-		$wallet_config                       = array(
-			'coin_client'   => 'monero',
-			'request_coin'  => 'XMR',
-			'multiplier'    => (float) $options['multiplier_xmr'],
-			'safe_address'  => false,
-			'decimals'      => 8
+		$wallet_config                         = array(
+			'coin_client'  => 'monero',
+			'request_coin' => 'XMR',
+			'multiplier'   => (float) $options[ 'multiplier_xmr' ],
+			'safe_address' => false,
+			'decimals'     => 8
 		);
-		$wallet_config['hdwallet']           = CW_Validate::check_if_unset( $wallet_config['cryptowoo_xmr_address'], $options, false ) &&
-                                               CW_Validate::check_if_unset( $wallet_config['cryptowoo_xmr_view_key'], $options, false );
-		$wallet_config['coin_protocols'][]   = 'monero';
-		$wallet_config['forwarding_enabled'] = false;
+		$wallet_config[ 'hdwallet' ]           = CW_Validate::check_if_unset( $wallet_config[ 'cryptowoo_xmr_address' ], $options, false ) && CW_Validate::check_if_unset( $wallet_config[ 'cryptowoo_xmr_view_key' ], $options, false );
+		$wallet_config[ 'coin_protocols' ][]   = 'monero';
+		$wallet_config[ 'forwarding_enabled' ] = false;
 	}
 
 	return $wallet_config;
@@ -202,19 +200,19 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 
 /**
  * @param string $qr_data
- * @param array $payment_details
+ * @param array  $payment_details
  *
  * @return string
  */
 function cwxmr_set_qr_data( $qr_data, $payment_details ) {
-	preg_match('/label=(.*?)%20Order/', $qr_data, $match);
-	$store_name = $match[1];
+	preg_match( '/label=(.*?)%20Order/', $qr_data, $match );
+	$store_name = $match[ 1 ];
 
-    $qr_data = str_replace("amount", "tx_amount", $qr_data);
-    $qr_data = str_replace("label", "tx_description", $qr_data);
-    $qr_data = str_replace("recipient_name", "tx_description", $qr_data);
-    $qr_data .= "&recipient_name=$store_name";
-	$qr_data .= "&tx_payment_id=" . get_payment_id($payment_details->invoice_number);
+	$qr_data = str_replace( "amount", "tx_amount", $qr_data );
+	$qr_data = str_replace( "label", "tx_description", $qr_data );
+	$qr_data = str_replace( "recipient_name", "tx_description", $qr_data );
+	$qr_data .= "&recipient_name=$store_name";
+	$qr_data .= "&tx_payment_id=" . get_payment_id( $payment_details->invoice_number );
 
 	return $qr_data;
 }
@@ -226,14 +224,14 @@ function cwxmr_set_qr_data( $qr_data, $payment_details ) {
  * @return mixed
  */
 function get_payment_id( $order_id ) {
-	return get_post_meta($order_id, 'payment_id', true);
+	return get_post_meta( $order_id, 'payment_id', true );
 }
 
 /**
  * @param array|WC_Order $payment_details
  */
 function cwxmr_display_payment_id_in_checkout( $payment_details ) {
-	if ( $payment_details instanceof  stdClass) {
+	if ( $payment_details instanceof stdClass ) {
 		$payment_id = get_payment_id( $payment_details->invoice_number );
 		?>
         <div class="cw-col-2 cw-bold">Id</div>
@@ -250,41 +248,43 @@ function cwxmr_display_payment_id_in_checkout( $payment_details ) {
 
 /**
  * @param WC_Order $order
- * @param string $payment_address
- * @param array $options
+ * @param string   $payment_address
+ * @param array    $options
  *
  * @return mixed|string
  */
 function cwxmr_get_payment_address( $payment_address, $order, $options ) {
-    if (CW_Validate::check_if_unset('cryptowoo_xmr_address', $options) && CW_Validate::check_if_unset('cryptowoo_xmr_view_key', $options)) {
-        $payment_address = $options['cryptowoo_xmr_address'];
-    }
+	if ( CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options ) ) {
+		$payment_address = $options[ 'cryptowoo_xmr_address' ];
+	}
 
-    // Generate payment ID
-    $payment_id = create_payment_id(32);
-	$order->update_meta_data('payment_id', $payment_id);
+	// Generate payment ID
+	$payment_id = create_payment_id( 32 );
+	$order->update_meta_data( 'payment_id', $payment_id );
 
 	// Find and set current block height
 	// TODO: Error logging if block height not found
-	$bc_height = (new NodeTools())->get_last_block_height();
-	if ( -1 !== $bc_height )
-		$order->update_meta_data('block_height_start', $bc_height);
+	$bc_height = ( new NodeTools() )->get_last_block_height();
+	if ( - 1 !== $bc_height ) {
+		$order->update_meta_data( 'block_height_start', $bc_height );
+	}
 
 	$order->save();
 
-    //$address = $monero_gateway->verify_non_rpc();
+	//$address = $monero_gateway->verify_non_rpc();
 
-    return $payment_address;
+	return $payment_address;
 }
 
 $monero_library = null;
 /** @return Monero_Library */
 function monero_library() {
-    global  $monero_library;
-    if (!isset($monero_library)) {
-        $monero_library = new Monero_Library("localhost", "18080");
-    }
-    return $monero_library;
+	global $monero_library;
+	if ( ! isset( $monero_library ) ) {
+		$monero_library = new Monero_Library( "localhost", "18080" );
+	}
+
+	return $monero_library;
 }
 
 /**
@@ -295,8 +295,8 @@ function monero_library() {
  *
  * @return string
  */
-function create_payment_id($size) {
-	return bin2hex(openssl_random_pseudo_bytes($size));
+function create_payment_id( $size ) {
+	return bin2hex( openssl_random_pseudo_bytes( $size ) );
 }
 
 /**
@@ -305,7 +305,7 @@ function create_payment_id($size) {
  * @return int
  */
 function get_block_height_start( $order ) {
-    return (int) get_post_meta($order->order_id, "block_height_start", true);
+	return (int) get_post_meta( $order->order_id, "block_height_start", true );
 }
 
 /**
@@ -314,17 +314,17 @@ function get_block_height_start( $order ) {
  * @return int
  */
 function get_block_height_last_checked( $order ) {
-    return (int) get_post_meta($order->order_id, "block_height_last_checked", true);
+	return (int) get_post_meta( $order->order_id, "block_height_last_checked", true );
 }
 
 /**
  * @param stdClass $order
- * @param string $bc_height
+ * @param string   $bc_height
  *
  * @return int|true|false
  */
 function save_last_checked_block_height( $order, $bc_height ) {
-    return update_post_meta($order->order_id, "block_height_last_checked", $bc_height);
+	return update_post_meta( $order->order_id, "block_height_last_checked", $bc_height );
 }
 
 /**
@@ -347,7 +347,7 @@ function verify_zero_conf( $payment_id, $order, $options ) {
 	}
 
 	$txs_from_mempool = $txs_from_mempool[ 'data' ][ 'txs' ];
-	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_mempool );
+	$tx_found         = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_mempool );
 
 	if ( is_array( $tx_found ) ) {
 		return convert_tx_to_insight_format( $order, $tx_found, false );
@@ -390,7 +390,7 @@ function verify_non_rpc( $payment_id, $order, $options ) {
 	$txs_from_block = $tools->get_txs_from_block( $bc_height );
 
 	// Could not find transactions from block? TODO: Error logging
-	if ( ! isset( $txs_from_block ) || ! is_array( $txs_from_block) ) {
+	if ( ! isset( $txs_from_block ) || ! is_array( $txs_from_block ) ) {
 		return false;
 	}
 
@@ -401,8 +401,9 @@ function verify_non_rpc( $payment_id, $order, $options ) {
 		// TODO: Error logging
 	}
 
-	if ( is_array( $tx_found ) )
-		return convert_tx_to_insight_format($order, $tx_found, true);
+	if ( is_array( $tx_found ) ) {
+		return convert_tx_to_insight_format( $order, $tx_found, true );
+	}
 
 	return false;
 }
@@ -418,14 +419,14 @@ function verify_non_rpc( $payment_id, $order, $options ) {
  *
  * @return bool
  */
-function find_tx_non_rpc($order, $options, $payment_id, $txs) {
+function find_tx_non_rpc( $order, $options, $payment_id, $txs ) {
 	$tools    = new NodeTools();
 	$tx_found = false;
 
 	foreach ( $txs as $tx ) {
 		if ( $tx[ 'payment_id' ] == $payment_id ) {
 			$tx_hash = $tx[ 'tx_hash' ];
-			$result = $tools->check_tx( $tx_hash, $order->address, $options[ 'cryptowoo_xmr_view_key' ] );
+			$result  = $tools->check_tx( $tx_hash, $order->address, $options[ 'cryptowoo_xmr_view_key' ] );
 			if ( $result ) {
 				$tx_found             = $tx;
 				$tx_found[ 'output' ] = $result;
@@ -440,44 +441,45 @@ function find_tx_non_rpc($order, $options, $payment_id, $txs) {
 /**
  * @param string[] $coins
  * @param string[]||string $coin_identifiers
- * @param array $options
+ * @param array    $options
  *
  * @return string[]
  */
 function cwxmr_coins_enabled_hd_override( $coins, $coin_identifiers, $options ) {
-    if (isset($coins['hd_xmr_enabled'])) {
-        if (isset($options['cryptowoo_xmr_address']) && isset($options['cryptowoo_xmr_view_key'])) {
-            $coins['monero_enabled'] = true;
-        }
-    }
+	if ( isset( $coins[ 'hd_xmr_enabled' ] ) ) {
+		if ( isset( $options[ 'cryptowoo_xmr_address' ] ) && isset( $options[ 'cryptowoo_xmr_view_key' ] ) ) {
+			$coins[ 'monero_enabled' ] = true;
+		}
+	}
 
-    return $coins;
+	return $coins;
 }
 
 /**
  * @param string[] $coins
  * @param string[]||string $coin_identifiers
- * @param array $options
+ * @param array    $options
  *
  * @return string[]
  */
 function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
-    if (is_array($coin_identifiers) && isset($coin_identifiers['XMR'])) {
-	    if (isset($options['cryptowoo_xmr_address']) && isset($options['cryptowoo_xmr_view_key'])) {
-		    $coins['XMR'] = "Monero";
-	    }
-    }
-    return $coins;
+	if ( is_array( $coin_identifiers ) && isset( $coin_identifiers[ 'XMR' ] ) ) {
+		if ( isset( $options[ 'cryptowoo_xmr_address' ] ) && isset( $options[ 'cryptowoo_xmr_view_key' ] ) ) {
+			$coins[ 'XMR' ] = "Monero";
+		}
+	}
+
+	return $coins;
 }
 
 /**
- * @param bool $address_valid
+ * @param bool   $address_valid
  * @param string $payment_address
  *
  * @return bool
  */
-function cwxmr_address_validate_override ( $payment_address ) {
-    return cwxmr_address_is_valid($payment_address);
+function cwxmr_address_validate_override( $payment_address ) {
+	return cwxmr_address_is_valid( $payment_address );
 }
 
 /**
@@ -488,16 +490,16 @@ function cwxmr_address_validate_override ( $payment_address ) {
 function cwxmr_address_is_valid( $payment_address ) {
 	$address_valid = true;
 
-	if (strpos($payment_address, "4") !== 0) {
+	if ( strpos( $payment_address, "4" ) !== 0 ) {
 		$address_valid = false;
 	}
 
-	if (strlen($payment_address) !== 95) {
+	if ( strlen( $payment_address ) !== 95 ) {
 		$address_valid = false;
 	}
 
-	$second = substr($payment_address, 1, 1);
-	if (!is_numeric($second) && $second != "A" && $second != "B") {
+	$second = substr( $payment_address, 1, 1 );
+	if ( ! is_numeric( $second ) && $second != "A" && $second != "B" ) {
 		$address_valid = false;
 	}
 
@@ -514,23 +516,25 @@ function cwxmr_address_is_valid( $payment_address ) {
  * @return array
  */
 function cwma_validate_monero_address( $field, $value, $existing_value ) {
-	if(empty($value) || $value === $existing_value) {
-		$return['value'] = $value;
+	if ( empty( $value ) || $value === $existing_value ) {
+		$return[ 'value' ] = $value;
+
 		return $return;
 	}
 
-	if(!cwxmr_address_is_valid($value)) {
+	if ( ! cwxmr_address_is_valid( $value ) ) {
 
 		$value = $existing_value;
 
-		$field['msg'] = "Monero address invalid! <br>";
-		$return['error'] = $field;
+		$field[ 'msg' ]    = "Monero address invalid! <br>";
+		$return[ 'error' ] = $field;
 
-		if(WP_DEBUG) {
-			file_put_contents(CW_LOG_DIR . 'cryptowoo-error.log', date("Y-m-d H:i:s") . __FILE__ . "\n".'redux_validate_address debug - '. $field['id'].' currency: '.var_export('xmr', true) .' value: '.var_export($value, true) . ' | result: ' .var_export($return, true) ."\n", FILE_APPEND);
+		if ( WP_DEBUG ) {
+			file_put_contents( CW_LOG_DIR . 'cryptowoo-error.log', date( "Y-m-d H:i:s" ) . __FILE__ . "\n" . 'redux_validate_address debug - ' . $field[ 'id' ] . ' currency: ' . var_export( 'xmr', true ) . ' value: ' . var_export( $value, true ) . ' | result: ' . var_export( $return, true ) . "\n", FILE_APPEND );
 		}
 	}
-	$return['value'] = $value;
+	$return[ 'value' ] = $value;
+
 	return $return;
 }
 
@@ -544,31 +548,33 @@ function cwma_validate_monero_address( $field, $value, $existing_value ) {
  * @return array
  */
 function cwma_validate_monero_view_key( $field, $value, $existing_value ) {
-	$options = get_option('cryptowoo_payments');
+	$options = get_option( 'cryptowoo_payments' );
 
-	if(empty($options['cryptowoo_xmr_address']) && (empty($value) || $value === $existing_value)) {
-		$return['value'] = $value;
+	if ( empty( $options[ 'cryptowoo_xmr_address' ] ) && ( empty( $value ) || $value === $existing_value ) ) {
+		$return[ 'value' ] = $value;
+
 		return $return;
 	}
 
 	$view_key_valid = true;
 
-	if (empty($value)) {
+	if ( empty( $value ) ) {
 		$view_key_valid = false;
 	}
 
-	if(!$view_key_valid) {
+	if ( ! $view_key_valid ) {
 
 		$value = $existing_value;
 
-		$field['msg'] = "Monero view key invalid! <br>";
-		$return['error'] = $field;
+		$field[ 'msg' ]    = "Monero view key invalid! <br>";
+		$return[ 'error' ] = $field;
 
-		if(WP_DEBUG) {
-			file_put_contents(CW_LOG_DIR . 'cryptowoo-error.log', date("Y-m-d H:i:s") . __FILE__ . "\n".'redux_validate_address debug - '. $field['id'].' currency: '.var_export('xmr', true) .' value: '.var_export($value, true) . ' | result: ' .var_export($return, true) ."\n", FILE_APPEND);
+		if ( WP_DEBUG ) {
+			file_put_contents( CW_LOG_DIR . 'cryptowoo-error.log', date( "Y-m-d H:i:s" ) . __FILE__ . "\n" . 'redux_validate_address debug - ' . $field[ 'id' ] . ' currency: ' . var_export( 'xmr', true ) . ' value: ' . var_export( $value, true ) . ' | result: ' . var_export( $return, true ) . "\n", FILE_APPEND );
 		}
 	}
-	$return['value'] = $value;
+	$return[ 'value' ] = $value;
+
 	return $return;
 }
 
@@ -581,9 +587,7 @@ function cwma_validate_monero_view_key( $field, $value, $existing_value ) {
  * @return mixed
  */
 function cwxmr_cryptowoo_misconfig_notice( $enabled, $options ) {
-	$enabled['XMR'] = $options['processing_api_xmr'] === 'disabled' &&
-                      ( (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) ) &&
-                      ( (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) );
+	$enabled[ 'XMR' ] = $options[ 'processing_api_xmr' ] === 'disabled' && ( (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) ) && ( (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) );
 
 	return $enabled;
 }
@@ -596,7 +600,7 @@ function cwxmr_cryptowoo_misconfig_notice( $enabled, $options ) {
  * @return mixed
  */
 function cwxmr_woocommerce_currencies( $currencies ) {
-	$currencies['XMR'] = __( 'Monero', 'cryptowoo' );
+	$currencies[ 'XMR' ] = __( 'Monero', 'cryptowoo' );
 
 	return $currencies;
 }
@@ -623,7 +627,7 @@ function cwxmr_get_currency_symbol( $currency_symbol, $currency ) {
  * @return array
  */
 function cwxmr_add_coin_identifier( $coin_identifiers ) {
-	$coin_identifiers['XMR'] = 'xmr';
+	$coin_identifiers[ 'XMR' ] = 'xmr';
 
 	return $coin_identifiers;
 }
@@ -662,7 +666,7 @@ function cwxmr_processing_config( $pc_conf, $currency, $options ) {
  */
 function cwxmr_link_to_address( $url, $address, $currency, $options ) {
 	if ( $currency === 'XMR' ) {
-        return null;
+		return null;
 	}
 
 	return $url;
@@ -671,28 +675,28 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
 /**
  * Do xmrchain.net api processing if chosen
  *
- * @param $batch_data
- * @param $batch_currency
- * @param WC_Order[] $orders
- * @param $processing
- * @param $options
+ * @param            $batch_data
+ * @param            $batch_currency
+ * @param stdClass[] $orders
+ * @param            $processing
+ * @param            $options
  *
  * @return string
  */
 function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $processing, $options ) {
-	if ( $batch_currency == "XMR" && $options['processing_api_xmr'] == "xmrchain.net" ) {
-		foreach ($orders as $order) {
+	if ( $batch_currency == "XMR" && $options[ 'processing_api_xmr' ] == "xmrchain.net" ) {
+		foreach ( $orders as $order ) {
 			//RPC: $result = monero_library()->get_payments(get_payment_id($order->invoice_number));
-            $payment_id = get_payment_id( $order->invoice_number );
+			$payment_id = get_payment_id( $order->invoice_number );
 			if ( ( ! $order_batch = verify_non_rpc( $payment_id, $order, $options ) ) && "0" == $order->received_unconfirmed ) {
 				$order_batch = verify_zero_conf( $payment_id, $order, $options );
-            }
+			}
 
-			$chain_height = get_block_height_last_checked($order);
-			$order_batch = CW_Insight::insight_tx_analysis( [ $order ], $order_batch, $options, $chain_height, true );
-			$order_batch[$order->invoice_number]['status'] = str_replace("Insight", $options['processing_api_xmr'], $order_batch[$order->invoice_number]['status']);
+			$chain_height                                      = get_block_height_last_checked( $order );
+			$order_batch                                       = CW_Insight::insight_tx_analysis( [ $order ], $order_batch, $options, $chain_height, true );
+			$order_batch[ $order->invoice_number ][ 'status' ] = str_replace( "Insight", $options[ 'processing_api_xmr' ], $order_batch[ $order->invoice_number ][ 'status' ] );
 
-			$batch_data[$batch_currency][$order->invoice_number] = $order_batch[$order->invoice_number];
+			$batch_data[ $batch_currency ][ $order->invoice_number ] = $order_batch[ $order->invoice_number ];
 		}
 	}
 
@@ -703,13 +707,13 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
  * Add extra data to tx for compatibility with insight tx check call
  *
  * @param stdClass $order
- * @param array $tx
- * @param bool $confirmed
+ * @param array    $tx
+ * @param bool     $confirmed
  *
  * @return stdClass[]
  */
 function convert_tx_to_insight_format( $order, $tx, $confirmed ) {
-    $tx = (object) $tx;
+	$tx                            = (object) $tx;
 	$tx->confirmations             = (int) $confirmed;
 	$tx->time                      = strtotime( $order->created_at );
 	$tx->txid                      = $tx->tx_hash;
@@ -732,8 +736,8 @@ function convert_tx_to_insight_format( $order, $tx, $confirmed ) {
  * @return array
  */
 function cwxmr_cryptowoo_is_ready( $enabled, $options, $changed_values ) {
-	$enabled['XMR']           = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options, false );
-	$enabled['XMR_transient'] = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $changed_values, false );
+	$enabled[ 'XMR' ]           = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options, false );
+	$enabled[ 'XMR_transient' ] = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $changed_values, false );
 
 	return $enabled;
 }
@@ -761,7 +765,7 @@ add_filter( 'is_cryptostore', 'cwxmr_is_cryptostore', 10, 2 );
  * @return array
  */
 function cwxmr_cw_get_shifty_coins( $select ) {
-	$select['XMR'] = sprintf( __( 'Display only on %s payment pages', 'cryptowoo' ), 'Monero' );
+	$select[ 'XMR' ] = sprintf( __( 'Display only on %s payment pages', 'cryptowoo' ), 'Monero' );
 
 	return $select;
 }
@@ -775,7 +779,7 @@ function cwxmr_cw_get_shifty_coins( $select ) {
  * @return array
  */
 function cwxmr_index_key_ids( $index_key_ids ) {
-	$index_key_ids['XMR'] = 'cryptowoo_xmr_index';
+	$index_key_ids[ 'XMR' ] = 'cryptowoo_xmr_index';
 
 	return $index_key_ids;
 }
@@ -789,7 +793,7 @@ function cwxmr_index_key_ids( $index_key_ids ) {
  * @return array
  */
 function cwxmr_mpk_key_ids( $mpk_key_ids ) {
-	$mpk_key_ids['XMR'] = 'cryptowoo_xmr_address';
+	$mpk_key_ids[ 'XMR' ] = 'cryptowoo_xmr_address';
 
 	return $mpk_key_ids;
 }
@@ -820,7 +824,7 @@ function cwxmr_get_mpk_data_mpk_key( $mpk_key, $currency, $options ) {
  * @return array
  */
 function cwxmr_force_update_exchange_rates( $results ) {
-	$results['xmr'] = CW_ExchangeRates::update_altcoin_fiat_rates( 'XMR', false, true );
+	$results[ 'xmr' ] = CW_ExchangeRates::update_altcoin_fiat_rates( 'XMR', false, true );
 
 	return $results;
 }
@@ -837,11 +841,11 @@ function cwxmr_cron_update_exchange_data( $data, $options ) {
 	$xmr = CW_ExchangeRates::update_altcoin_fiat_rates( 'XMR', $options );
 
 	// Maybe log exchange rate updates
-	if ( (bool) $options['logging']['rates'] ) {
-		if ( $xmr['status'] === 'not updated' || strpos( $xmr['status'], 'disabled' ) ) {
-			$data['xmr'] = strpos( $xmr['status'], 'disabled' ) ? $xmr['status'] : $xmr['last_update'];
+	if ( (bool) $options[ 'logging' ][ 'rates' ] ) {
+		if ( $xmr[ 'status' ] === 'not updated' || strpos( $xmr[ 'status' ], 'disabled' ) ) {
+			$data[ 'xmr' ] = strpos( $xmr[ 'status' ], 'disabled' ) ? $xmr[ 'status' ] : $xmr[ 'last_update' ];
 		} else {
-			$data['xmr'] = $xmr;
+			$data[ 'xmr' ] = $xmr;
 		}
 	}
 
@@ -871,7 +875,7 @@ function cwxmr_add_currency_to_array( $currencies ) {
  */
 function cwxmr_sort_unpaid_addresses( $top_n, $address ) {
 	if ( strcmp( $address->payment_currency, 'XMR' ) === 0 ) {
-		$top_n[3]['XMR'][] = $address;
+		$top_n[ 3 ][ 'XMR' ][] = $address;
 	}
 
 	return $top_n;
@@ -887,7 +891,7 @@ function cwxmr_sort_unpaid_addresses( $top_n, $address ) {
  */
 function cwxmr_prioritize_unpaid_addresses( $top_n, $address ) {
 	if ( strcmp( $address->payment_currency, 'XMR' ) === 0 ) {
-		$top_n[3][] = $address;
+		$top_n[ 3 ][] = $address;
 	}
 
 	return $top_n;
@@ -903,7 +907,7 @@ function cwxmr_prioritize_unpaid_addresses( $top_n, $address ) {
  */
 function cwxmr_filter_batch( $address_batch, $address ) {
 	if ( strcmp( $address->payment_currency, 'XMR' ) === 0 ) {
-		$address_batch['XMR'][] = $address->address;
+		$address_batch[ 'XMR' ][] = $address->address;
 	}
 
 	return $address_batch;
@@ -941,10 +945,10 @@ function cwxmr_cw_get_tx_api_config( $api_config, $currency ) {
  * @return mixed
  */
 function cwxmr_override_insight_url( $insight, $endpoint, $currency, $options ) {
-	if ( $currency === 'XMR' && isset( $options['processing_fallback_url_xmr'] ) && wp_http_validate_url( $options['processing_fallback_url_xmr'] ) ) {
-		$fallback_url = $options['processing_fallback_url_xmr'];
+	if ( $currency === 'XMR' && isset( $options[ 'processing_fallback_url_xmr' ] ) && wp_http_validate_url( $options[ 'processing_fallback_url_xmr' ] ) ) {
+		$fallback_url = $options[ 'processing_fallback_url_xmr' ];
 		$urls         = $endpoint ? CW_Formatting::format_insight_api_url( $fallback_url, $endpoint ) : CW_Formatting::format_insight_api_url( $fallback_url, '' );
-		$insight->url = $urls['surl'];
+		$insight->url = $urls[ 'surl' ];
 	}
 
 	return $insight;
@@ -1025,7 +1029,7 @@ function cwxmr_add_fields() {
 		'subtitle'          => sprintf( __( 'Choose the API provider you want to use to look up %s payments.', 'cryptowoo' ), 'Monero' ),
 		'options'           => array(
 			'xmrchain.net' => 'xmrchain.net',
-			'disabled'   => __( 'Disabled', 'cryptowoo' ),
+			'disabled'     => __( 'Disabled', 'cryptowoo' ),
 		),
 		'desc'              => '',
 		'default'           => 'disabled',
@@ -1097,9 +1101,9 @@ function cwxmr_add_fields() {
 		'subtitle'   => sprintf( __( 'Choose the block explorer you want to use for links to the %s blockchain.', 'cryptowoo' ), 'Monero' ),
 		'desc'       => '',
 		'options'    => array(
-			'autoselect' => __( 'Autoselect by processing API', 'cryptowoo' ),
+			'autoselect'   => __( 'Autoselect by processing API', 'cryptowoo' ),
 			'xmrchain.net' => 'xmrchain.net',
-			'custom'     => __( 'Custom (enter URL below)' ),
+			'custom'       => __( 'Custom (enter URL below)' ),
 		),
 		'default'    => 'xmrchain.net',
 		'select2'    => array( 'allowClear' => false )
