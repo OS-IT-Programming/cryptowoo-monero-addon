@@ -1063,7 +1063,8 @@ function cwxmr_add_fields() {
 		'options'           => array(
 			'bittrex'    => 'Bittrex',
 			'poloniex'   => 'Poloniex',
-			'shapeshift' => 'ShapeShift'
+			'shapeshift' => 'ShapeShift',
+			'binance' => 'Binance'
 		),
 		'default'           => 'poloniex',
 		'ajax_save'         => false, // Force page load when this changes
