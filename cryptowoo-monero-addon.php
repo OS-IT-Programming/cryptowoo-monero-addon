@@ -824,7 +824,7 @@ function cwxmr_get_mpk_data_mpk_key( $mpk_key, $currency, $options ) {
  * @return array
  */
 function cwxmr_force_update_exchange_rates( $results ) {
-	$results[ 'xmr' ] = CW_ExchangeRates::update_altcoin_fiat_rates( 'XMR', false, true );
+	$results[ 'xmr' ] = CW_ExchangeRates::processing()->update_coin_fiat_rates( 'XMR', false, true );
 
 	return $results;
 }
@@ -838,7 +838,7 @@ function cwxmr_force_update_exchange_rates( $results ) {
  * @return array
  */
 function cwxmr_cron_update_exchange_data( $data, $options ) {
-	$xmr = CW_ExchangeRates::update_altcoin_fiat_rates( 'XMR', $options );
+	$xmr = CW_ExchangeRates::processing()->update_coin_fiat_rates( 'XMR', $options );
 
 	// Maybe log exchange rate updates
 	if ( (bool) $options[ 'logging' ][ 'rates' ] ) {
