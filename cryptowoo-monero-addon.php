@@ -153,20 +153,18 @@ if ( cwxmr_hd_enabled() ) {
 }
 
 /**
- * Monero font color for aw-cryptocoins
+ * Font color for aw-cryptocoins
  * see cryptowoo/assets/fonts/aw-cryptocoins/cryptocoins-colors.css
  */
-function cwxmr_coin_icon_color() { ?>
-    <style type="text/css">
-        i.cc.XMR:before, i.cc.XMR-alt:before {
-            content: "\e936";
-        }
-
-        i.cc.XMR, i.cc.XMR-alt {
-            color: #FF6600;
-        }
-    </style>
-<?php }
+function cwxmr_coin_icon_color() {
+	?>
+	<style type="text/css">
+		i.cc.<?php echo esc_attr( 'XMR' ); ?>, i.cc.<?php echo esc_attr( 'XMR-alt' ); ?> {
+			color: #FF6600;
+		}
+	</style>
+	<?php
+}
 
 add_action( 'wp_head', 'cwxmr_coin_icon_color' );
 
