@@ -225,12 +225,14 @@ function get_payment_id( $order_id ) {
 	return get_post_meta( $order_id, 'payment_id', true );
 }
 
-/**
- * @param array|WC_Order $payment_details
+/** Display payment id in checkout payment page
+ *
+ * @param WC_Order $wc_order
  */
-function cwxmr_display_payment_id_in_checkout( $payment_details ) {
-	if ( $payment_details instanceof stdClass ) {
-		$payment_id = get_payment_id( $payment_details->invoice_number );
+function cwxmr_display_payment_id_in_checkout( $wc_order ) {
+	$payment_id = get_payment_id( $wc_order->get_id() );
+
+	if ( is_wc_endpoint_url( 'order-pay' ) ) {
 		?>
         <div class="cw-col-2 cw-bold">Id</div>
         <div class="cw-col-10 cw-label">
@@ -238,8 +240,7 @@ function cwxmr_display_payment_id_in_checkout( $payment_details ) {
                   onclick="selectText('payment-id')"><?php esc_html_e( $payment_id ); ?></span>
         </div>
 		<?php
-	} elseif ( $payment_details instanceof WC_Order ) {
-		$payment_id = get_payment_id( $payment_details->get_id() );
+	} else {
 		printf( '%s: %s<br>', esc_html__( 'Payment id', 'cryptowoo' ), $payment_id );
 	}
 }
