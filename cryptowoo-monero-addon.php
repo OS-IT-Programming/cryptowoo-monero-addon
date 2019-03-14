@@ -1145,13 +1145,12 @@ function cwxmr_add_fields() {
 	 * Currency Switcher plugin decimals
 	 */
 	Redux::setField( 'cryptowoo_payments', array(
-		'section_id' => 'rewriting-switcher',
+		'section_id' => 'pricing-decimals',
 		'id'         => 'decimals_XMR',
 		'type'       => 'select',
 		'title'      => sprintf( __( '%s amount decimals', 'cryptowoo' ), 'Monero' ),
 		'subtitle'   => '',
 		'desc'       => __( 'This option overrides the decimals option of the WooCommerce Currency Switcher plugin.', 'cryptowoo' ),
-		'required'   => array( 'add_currencies_to_woocs', '=', true ),
 		'options'    => array(
 			2 => '2',
 			4 => '4',
