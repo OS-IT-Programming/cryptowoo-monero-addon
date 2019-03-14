@@ -823,7 +823,7 @@ function cwxmr_get_mpk_data_mpk_key( $mpk_key, $currency, $options ) {
  * @return array
  */
 function cwxmr_force_update_exchange_rates( $results ) {
-	$results[ 'xmr' ] = CW_ExchangeRates::processing()->update_coin_fiat_rates( 'XMR', false, true );
+	$results[ 'xmr' ] = CW_ExchangeRates::processing()->update_coin_rates( 'XMR', false, true );
 
 	return $results;
 }
