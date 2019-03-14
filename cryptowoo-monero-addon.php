@@ -186,7 +186,8 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 			'request_coin' => 'XMR',
 			'multiplier'   => (float) $options[ 'multiplier_xmr' ],
 			'safe_address' => false,
-			'decimals'     => 8
+			'decimals'     => 8,
+			'fwd_addr_key'  => ''
 		);
 		$wallet_config[ 'hdwallet' ]           = false; //CW_Validate::check_if_unset('cryptowoo_xmr_address', $options, false ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options, false );
 		$wallet_config[ 'coin_protocols' ][]   = 'monero';
