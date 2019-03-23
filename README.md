@@ -5,15 +5,14 @@ Accept payments in Monero in WooCommerce with CryptoWoo.
 [WordPress](https://wordpress.org/download/)  
 [WooCommerce](https://wordpress.org/plugins/woocommerce/)  
 [CryptoWoo](https://www.cryptowoo.com/shop/cryptowoo/)  
-[CryptoWoo HD Wallet Addon](https://www.cryptowoo.com/shop/cryptowoo-hd-wallet-addon/)
 
 ## Installation
-1. Download [latest release](https://github.com/Olsm/cryptowoo-bitcoin-cash-addon/releases/latest) as zip.
+1. Download [latest release](https://github.com/Olsm/cryptowoo-monero-addon/releases/latest) as zip.
 2. Upload plugin in wordpress admin -> plugins.
 3. Activate plugin.
 
 # Donate
-<img align="left" src="https://blockchain.info/qr?data=4963fPR9LpregvPonApDft43TahwYhrVKehChbWV9BDdCKgZjHNANJiGEkQMYmkQnFMsudZYApUptGGfhLS56pBhCQpMZ3V&size=150">  
+<img align="left" src="includes/qr.png" width="150">  
 
 Contribute to development of this plugin.
 
