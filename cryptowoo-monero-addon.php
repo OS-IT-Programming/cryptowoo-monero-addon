@@ -267,7 +267,7 @@ function cwxmr_get_payment_address( $payment_address, $order, $options ) {
 	}
 
 	// Generate payment ID
-	$payment_id = create_payment_id( 32 );
+	$payment_id = create_payment_id( 8 );
 	$order->update_meta_data( 'payment_id', $payment_id );
 
 	// Generate integrated address from public view key and public spend key and payment id.
