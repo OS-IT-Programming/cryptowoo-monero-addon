@@ -149,7 +149,7 @@ if ( cwxmr_hd_enabled() ) {
 	add_action( 'cw_display_extra_details_XMR', 'cwxmr_display_payment_id_in_checkout' );
 
 	// Add payment_id to qr code
-	add_filter( 'cw_set_qr_data_XMR', 'cwxmr_set_qr_data', 10, 2 );
+	add_filter( 'cw_set_qr_data', 'cwxmr_set_qr_data', 10, 4 );
 }
 
 /**
@@ -186,7 +186,8 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 			'request_coin' => 'XMR',
 			'multiplier'   => (float) $options[ 'multiplier_xmr' ],
 			'safe_address' => false,
-			'decimals'     => 8
+			'decimals'     => 8,
+			'fwd_addr_key'  => ''
 		);
 		$wallet_config[ 'hdwallet' ]           = false; //CW_Validate::check_if_unset('cryptowoo_xmr_address', $options, false ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options, false );
 		$wallet_config[ 'coin_protocols' ][]   = 'monero';
@@ -199,18 +200,23 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 /**
  * @param string $qr_data
  * @param array  $payment_details
+ * @param mixed $order
+ * @param array $options
  *
  * @return string
  */
-function cwxmr_set_qr_data( $qr_data, $payment_details ) {
-	preg_match( '/label=(.*?)%20Order/', $qr_data, $match );
-	$store_name = $match[ 1 ];
+function cwxmr_set_qr_data( $qr_data, $payment_details, $order, $options ) {
 
-	$qr_data = str_replace( "amount", "tx_amount", $qr_data );
-	$qr_data = str_replace( "label", "tx_description", $qr_data );
-	$qr_data = str_replace( "recipient_name", "tx_description", $qr_data );
-	$qr_data .= "&recipient_name=$store_name";
-	$qr_data .= "&tx_payment_id=" . get_payment_id( $payment_details->invoice_number );
+    if( 'XMR' === $payment_details->payment_currency ) {
+	    preg_match( '/label=(.*?)%20Order/', $qr_data, $match );
+	    $store_name = $match[1];
+
+	    $qr_data = str_replace( "amount", "tx_amount", $qr_data );
+	    $qr_data = str_replace( "label", "tx_description", $qr_data );
+	    $qr_data = str_replace( "recipient_name", "tx_description", $qr_data );
+	    $qr_data .= "&recipient_name=$store_name";
+	    $qr_data .= "&tx_payment_id=" . get_payment_id( $payment_details->invoice_number );
+    }
 
 	return $qr_data;
 }
@@ -1037,6 +1043,24 @@ function cwxmr_add_fields() {
 		'select2'           => array( 'allowClear' => false ),
 	) );
 
+	Redux::setField( 'cryptowoo_payments', array(
+		'section_id' => 'processing-api',
+		'id'        => 'processing_api_xmr_privacy',
+		'type'      => 'info',
+		'notice'    => false,
+		'icon'      => 'fa fa-eye fa-2x',
+		'title'     => __('A note on privacy:', 'cryptowoo'),
+		'desc'      => __( "When you validate transactions with your private viewkey,
+		your viewkey is sent to (but not stored on) xmrchain.net over HTTPS. 
+		This could potentially allow an attacker to see your incoming, but not outgoing, 
+		transactions if he were to get his hands on your viewkey. Even if this were to happen, 
+		your funds would still be safe and it would be impossible for somebody to steal your money. 
+		For maximum privacy use your own monero-wallet-rpc instance.", 'cryptowoo' ),
+		'required' => array(
+			array('processing_api_xmr', '=', 'xmrchain.net'),
+		)
+	) );
+
 	// Re-add blockcypher token field
 	Redux::setField( 'cryptowoo_payments', array(
 		'section_id'        => 'processing-api',
@@ -1132,7 +1156,6 @@ function cwxmr_add_fields() {
 		'title'      => sprintf( __( '%s amount decimals', 'cryptowoo' ), 'Monero' ),
 		'subtitle'   => '',
 		'desc'       => __( 'This option overrides the decimals option of the WooCommerce Currency Switcher plugin.', 'cryptowoo' ),
-		'required'   => array( 'add_currencies_to_woocs', '=', true ),
 		'options'    => array(
 			2 => '2',
 			4 => '4',
@@ -1175,8 +1198,8 @@ function cwxmr_add_fields() {
 		'id'                => 'cryptowoo_xmr_view_key',
 		'type'              => 'text',
 		'subtitle'          => '',
-		'title'             => sprintf( __( '%s View Key', 'cryptowoo-monero-addon' ), 'Monero' ),
-		'desc'              => __( 'Change the view key to match the view key of your wallet client.', 'cryptowoo-monero-addon' ),
+		'title'             => sprintf( __( '%s Secret View Key', 'cryptowoo-monero-addon' ), 'Monero' ),
+		'desc'              => __( 'Change the view key to match the secret view key of your wallet client.', 'cryptowoo-monero-addon' ),
 		'validate_callback' => 'cwma_validate_monero_view_key',
 		//ToDo: Validate view key
 		//'validate_callback' => 'redux_validate_view_key',
