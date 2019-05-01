@@ -843,7 +843,7 @@ function cwxmr_force_update_exchange_rates( $results ) {
  * @return array
  */
 function cwxmr_cron_update_exchange_data( $data, $options ) {
-	$xmr = CW_ExchangeRates::processing()->update_coin_fiat_rates( 'XMR', $options );
+	$xmr = CW_ExchangeRates::processing()->update_coin_rates( 'XMR', $options );
 
 	// Maybe log exchange rate updates
 	if ( (bool) $options[ 'logging' ][ 'rates' ] ) {
