@@ -147,9 +147,6 @@ if ( cwxmr_hd_enabled() ) {
 	// Validate payment address
 	add_filter( 'cw_validate_address_XMR', 'cwxmr_address_validate_override', 10, 1 );
 
-	// Add payment id in checkout
-	add_action( 'cw_display_extra_details_XMR', 'cwxmr_display_payment_id_in_checkout' );
-
 	// Add payment_id to qr code
 	add_filter( 'cw_set_qr_data', 'cwxmr_set_qr_data', 10, 4 );
 }
@@ -217,7 +214,6 @@ function cwxmr_set_qr_data( $qr_data, $payment_details, $order, $options ) {
 	    $qr_data = str_replace( "label", "tx_description", $qr_data );
 	    $qr_data = str_replace( "recipient_name", "tx_description", $qr_data );
 	    $qr_data .= "&recipient_name=$store_name";
-	    $qr_data .= "&tx_payment_id=" . get_payment_id( $payment_details->invoice_number );
     }
 
 	return $qr_data;
@@ -255,26 +251,6 @@ function generate_integrated_address( $payment_address, $payment_id ) {
 
 	// Generate integrated address from public view key and public spend key and payment id.
 	return monero_cryptonote()->integrated_addr_from_keys( $address_data['spendkey'], $address_data['viewkey'], $payment_id );
-}
-
-/** Display payment id in checkout payment page
- *
- * @param WC_Order $wc_order
- */
-function cwxmr_display_payment_id_in_checkout( $wc_order ) {
-	$payment_id = get_payment_id( $wc_order->get_id() );
-
-	if ( is_wc_endpoint_url( 'order-pay' ) ) {
-		?>
-        <div class="cw-col-2 cw-bold">Id</div>
-        <div class="cw-col-10 cw-label">
-            <span class="ngh-blocktext copywrap-address" id="payment-id"
-                  onclick="selectText('payment-id')"><?php esc_html_e( $payment_id ); ?></span>
-        </div>
-		<?php
-	} else {
-		printf( '%s: %s<br>', esc_html__( 'Payment id', 'cryptowoo' ), $payment_id );
-	}
 }
 
 /**
