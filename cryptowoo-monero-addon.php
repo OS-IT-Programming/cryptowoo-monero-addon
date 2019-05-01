@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 
 require_once( 'includes/monerowp/library.php' );
+define( 'MONERO_GATEWAY_ADDRESS_PREFIX', 0x12 );
+define( 'MONERO_GATEWAY_ADDRESS_PREFIX_INTEGRATED', 0x13 );
 
 define( 'CWXMR_VER', '1.0' );
 define( 'CWXMR_FILE', __FILE__ );
@@ -231,6 +233,30 @@ function get_payment_id( $order_id ) {
 	return get_post_meta( $order_id, 'payment_id', true );
 }
 
+
+
+/**
+ * @param $order_id
+ *
+ * @return mixed
+ */
+function get_integrated_address( $order_id) {
+	return get_post_meta( $order_id, 'integrated_address', true );
+}
+
+/**
+ * @param $order_id
+ *
+ * @return mixed
+ */
+function generate_integrated_address( $payment_address, $payment_id ) {
+	// Decode public spend key and public view key from payment address.
+	$address_data = monero_cryptonote()->decode_address( $payment_address );
+
+	// Generate integrated address from public view key and public spend key and payment id.
+	return monero_cryptonote()->integrated_addr_from_keys( $address_data['spendkey'], $address_data['viewkey'], $payment_id );
+}
+
 /** Display payment id in checkout payment page
  *
  * @param WC_Order $wc_order
@@ -261,11 +287,15 @@ function cwxmr_display_payment_id_in_checkout( $wc_order ) {
 function cwxmr_get_payment_address( $payment_address, $order, $options ) {
 	if ( CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options ) ) {
 		$payment_address = $options[ 'cryptowoo_xmr_address' ];
+		$order->update_meta_data( 'raw_address', $payment_address );
 	}
 
 	// Generate payment ID
 	$payment_id = create_payment_id( 32 );
 	$order->update_meta_data( 'payment_id', $payment_id );
+
+	// Generate integrated address from public view key and public spend key and payment id.
+	$integrated_address = generate_integrated_address( $payment_address, $payment_id );
 
 	// Find and set current block height
 	// TODO: Error logging if block height not found
@@ -278,7 +308,7 @@ function cwxmr_get_payment_address( $payment_address, $order, $options ) {
 
 	//$address = $monero_gateway->verify_non_rpc();
 
-	return $payment_address;
+	return $integrated_address;
 }
 
 $monero_library = null;
@@ -290,6 +320,18 @@ function monero_library() {
 	}
 
 	return $monero_library;
+}
+
+$monero_cryptonote = null;
+/** @return Monero_Cryptonote */
+function monero_cryptonote() {
+	global $monero_cryptonote;
+	if ( ! isset( $monero_cryptonote ) ) {
+		require_once WP_PLUGIN_DIR . '/cryptowoo-monero-addon/includes/monerowp/include/class-monero-gateway.php';
+		$monero_cryptonote = new Monero_Cryptonote();
+	}
+
+	return $monero_cryptonote;
 }
 
 /**
@@ -429,7 +471,7 @@ function find_tx_non_rpc( $order, $options, $payment_id, $txs ) {
 	$tx_found = false;
 
 	foreach ( $txs as $tx ) {
-		if ( $tx[ 'payment_id' ] == $payment_id ) {
+		if ( $tx[ 'payment_id8' ] == $payment_id ) {
 			$tx_hash = $tx[ 'tx_hash' ];
 			$result  = $tools->check_tx( $tx_hash, $order->address, $options[ 'cryptowoo_xmr_view_key' ] );
 			if ( $result ) {
@@ -499,12 +541,7 @@ function cwxmr_address_is_valid( $payment_address ) {
 		$address_valid = false;
 	}
 
-	if ( strlen( $payment_address ) !== 95 ) {
-		$address_valid = false;
-	}
-
-	$second = substr( $payment_address, 1, 1 );
-	if ( ! is_numeric( $second ) && $second != "A" && $second != "B" ) {
+	if ( strlen( $payment_address ) !== 106 ) {
 		$address_valid = false;
 	}
 
