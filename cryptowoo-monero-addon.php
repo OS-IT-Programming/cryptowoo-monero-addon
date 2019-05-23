@@ -472,7 +472,7 @@ function find_tx_non_rpc( $order, $options, $payment_id, $txs ) {
  */
 function cwxmr_coins_enabled_hd_override( $coins, $coin_identifiers, $options ) {
 	if ( isset( $coins[ 'hd_xmr_enabled' ] ) ) {
-		if ( isset( $options[ 'cryptowoo_xmr_address' ] ) && isset( $options[ 'cryptowoo_xmr_view_key' ] ) ) {
+		if ( CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options ) ) {
 			$coins[ 'monero_enabled' ] = true;
 		}
 	}
@@ -489,7 +489,7 @@ function cwxmr_coins_enabled_hd_override( $coins, $coin_identifiers, $options ) 
  */
 function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
 	if ( is_array( $coin_identifiers ) && isset( $coin_identifiers[ 'XMR' ] ) ) {
-		if ( isset( $options[ 'cryptowoo_xmr_address' ] ) && isset( $options[ 'cryptowoo_xmr_view_key' ] ) ) {
+		if ( CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options ) ) {
 			$coins[ 'XMR' ] = "Monero";
 		}
 	}
