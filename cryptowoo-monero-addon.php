@@ -241,16 +241,27 @@ function get_integrated_address( $order_id) {
 }
 
 /**
- * @param $order_id
+ * @param $payment_address
+ * @param $payment_id
  *
  * @return mixed
  */
 function generate_integrated_address( $payment_address, $payment_id ) {
-	// Decode public spend key and public view key from payment address.
-	$address_data = monero_cryptonote()->decode_address( $payment_address );
 
-	// Generate integrated address from public view key and public spend key and payment id.
-	return monero_cryptonote()->integrated_addr_from_keys( $address_data['spendkey'], $address_data['viewkey'], $payment_id );
+	try {
+		// Decode public spend key and public view key from payment address.
+		$address_data = monero_cryptonote()->decode_address( $payment_address );
+	} catch ( Exception $e ) {
+		CW_AdminMain::cryptowoo_log_data(0, __FUNCTION__, $e->getMessage(), 'alert' );
+		$payment_address = false;
+	}
+
+	if( isset( $address_data['spendkey'] ) ) {
+		// Generate integrated address from public view key and public spend key and payment id.
+		$payment_address = monero_cryptonote()->integrated_addr_from_keys( $address_data['spendkey'], $address_data['viewkey'], $payment_id );
+	}
+
+	return $payment_address;
 }
 
 /**
