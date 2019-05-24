@@ -504,26 +504,26 @@ function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
  * @return bool
  */
 function cwxmr_address_validate_override( $payment_address ) {
-	return cwxmr_address_is_valid( $payment_address );
+	return cwxmr_address_is_valid( $payment_address, 'integrated' );
 }
 
 /**
  * @param string $payment_address
+ * @param string $type
  *
  * @return bool
  */
-function cwxmr_address_is_valid( $payment_address ) {
-	$address_valid = true;
+function cwxmr_address_is_valid( $payment_address, $type ) {
 
-	if ( strpos( $payment_address, "4" ) !== 0 ) {
-		$address_valid = false;
-	}
+    // Raw addresses have a length of 95
+    // Integrated addresses have a length of 106
+	$expected_length = $type === 'raw' ? 95 : 106;
 
-	if ( strlen( $payment_address ) !== 106 ) {
-		$address_valid = false;
-	}
+	// Valid if it starts with '4' and has the expected length
+	$valid = 0 === strpos($payment_address, '4') && strlen($payment_address) === $expected_length;
 
-	return $address_valid;
+	return $valid;
+
 }
 
 /**
@@ -542,7 +542,7 @@ function cwma_validate_monero_address( $field, $value, $existing_value ) {
 		return $return;
 	}
 
-	if ( ! cwxmr_address_is_valid( $value ) ) {
+	if ( ! cwxmr_address_is_valid( $value, 'raw' ) ) {
 
 		$value = $existing_value;
 
