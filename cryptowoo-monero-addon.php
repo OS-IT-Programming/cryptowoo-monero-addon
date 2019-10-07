@@ -23,7 +23,7 @@ require_once( 'includes/monerowp/library.php' );
 define( 'MONERO_GATEWAY_ADDRESS_PREFIX', 0x12 );
 define( 'MONERO_GATEWAY_ADDRESS_PREFIX_INTEGRATED', 0x13 );
 
-define( 'CWXMR_VER', '1.0' );
+define( 'CWXMR_VER', '1.0.1' );
 define( 'CWXMR_FILE', __FILE__ );
 $cw_dir          = WP_PLUGIN_DIR . "/cryptowoo";
 $cw_license_path = "$cw_dir/am-license-menu.php";
@@ -472,7 +472,7 @@ function find_tx_non_rpc( $order, $options, $payment_id, $txs ) {
  */
 function cwxmr_coins_enabled_hd_override( $coins, $coin_identifiers, $options ) {
 	if ( isset( $coins[ 'hd_xmr_enabled' ] ) ) {
-		if ( CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options ) ) {
+		if ( cwxmr_is_enabled( $options ) ) {
 			$coins[ 'monero_enabled' ] = true;
 		}
 	}
@@ -489,12 +489,22 @@ function cwxmr_coins_enabled_hd_override( $coins, $coin_identifiers, $options ) 
  */
 function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
 	if ( is_array( $coin_identifiers ) && isset( $coin_identifiers[ 'XMR' ] ) ) {
-		if ( CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options ) ) {
-			$coins[ 'XMR' ] = "Monero";
+		if ( cwxmr_is_enabled( $options ) ) {
+			$coins['XMR'] = "Monero";
 		}
 	}
 
 	return $coins;
+}
+
+/** Check if the monero addon is enabled.
+ *
+ * @param $options
+ *
+ * @return bool
+ */
+function cwxmr_is_enabled( $options ) {
+	return CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options ) && CW_Validate::check_if_unset( 'processing_api_xmr', $options ) && 'disabled' !== $options['processing_api_xmr'];
 }
 
 /**
