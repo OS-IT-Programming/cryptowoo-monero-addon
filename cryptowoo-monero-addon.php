@@ -749,6 +749,7 @@ function convert_tx_to_insight_format( $order, $tx, $confirmed ) {
 	$tx->time                      = strtotime( $order->created_at );
 	$tx->txid                      = $tx->tx_hash;
 	$vout                          = new stdClass();
+	$vout->scriptPubKey            = new stdClass();
 	$vout->scriptPubKey->addresses = [ $order->address ];
 	$vout->value                   = (float) $tx->output[ 'amount' ] / 1e12;
 	$tx->vout                      = [ $vout ];
