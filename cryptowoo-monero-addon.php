@@ -229,17 +229,6 @@ function get_payment_id( $order_id ) {
 	return get_post_meta( $order_id, 'payment_id', true );
 }
 
-
-
-/**
- * @param $order_id
- *
- * @return mixed
- */
-function get_integrated_address( $order_id) {
-	return get_post_meta( $order_id, 'integrated_address', true );
-}
-
 /**
  * @param $payment_address
  * @param $payment_id
