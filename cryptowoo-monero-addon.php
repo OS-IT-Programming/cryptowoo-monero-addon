@@ -261,12 +261,10 @@ function generate_integrated_address( $payment_address, $payment_id ) {
  * @return mixed|string
  */
 function cwxmr_get_payment_address( $payment_address, $order, $options ) {
-	if ( CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options ) ) {
-		$payment_address = $options[ 'cryptowoo_xmr_address' ];
-		$order->update_meta_data( 'raw_address', $payment_address );
-	}
+	$payment_address = cwxmr_get_wallet_address( $options );
+	$order->update_meta_data( 'raw_address', $payment_address );
 
-	// Generate payment ID
+	// Generate payment ID.
 	$payment_id = create_payment_id( 8 );
 	$order->update_meta_data( 'payment_id', $payment_id );
 
@@ -274,15 +272,13 @@ function cwxmr_get_payment_address( $payment_address, $order, $options ) {
 	$integrated_address = generate_integrated_address( $payment_address, $payment_id );
 
 	// Find and set current block height
-	// TODO: Error logging if block height not found
+	// TODO: Error logging if block height not found.
 	$bc_height = ( new NodeTools() )->get_last_block_height();
 	if ( - 1 !== $bc_height ) {
 		$order->update_meta_data( 'block_height_start', $bc_height );
 	}
 
 	$order->save();
-
-	//$address = $monero_gateway->verify_non_rpc();
 
 	return $integrated_address;
 }
@@ -451,7 +447,7 @@ function find_tx_non_rpc( $order, $options, $payment_id, $txs ) {
 		//$decrypted_payment_id = $tx['payment_id8'] ? monero_cryptonote()->stealth_payment_id( $tx['payment_id8'], $tx['tx_hash'], $options[ 'cryptowoo_xmr_view_key' ] ) : '';
 	    //if ( $decrypted_payment_id == $payment_id ) {
 			$tx_hash = $tx[ 'tx_hash' ];
-			$result  = $tools->check_tx( $tx_hash, $order->address, $options[ 'cryptowoo_xmr_view_key' ] );
+			$result  = $tools->check_tx( $tx_hash, $order->address, cwxmr_get_wallet_view_key( $options ) );
 			if ( $result ) {
 				$tx_found             = $tx;
 				$tx_found[ 'output' ] = $result;
@@ -499,12 +495,48 @@ function cwxmr_coins_enabled_override( $coins, $coin_identifiers, $options ) {
 
 /** Check if the monero addon is enabled.
  *
- * @param $options
+ * @param array $options CryptoWoo options.
  *
  * @return bool
  */
 function cwxmr_is_enabled( $options ) {
-	return CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options ) && CW_Validate::check_if_unset( 'processing_api_xmr', $options ) && 'disabled' !== $options['processing_api_xmr'];
+	$xmr_address        = cwxmr_get_wallet_address( $options );
+	$xmr_view_key       = cwxmr_get_wallet_view_key( $options );
+	$processing_api_xmr = cwxmr_get_processing_api( $options );
+
+	return $xmr_address && $xmr_view_key && $processing_api_xmr;
+}
+
+/** Get the wallet address.
+ *
+ * @param array $options CryptoWoo options.
+ *
+ * @return string|false
+ */
+function cwxmr_get_wallet_address( $options ) {
+	return CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options );
+}
+
+/** Get the wallet view key.
+ *
+ * @param array $options CryptoWoo options.
+ *
+ * @return string|false
+ */
+function cwxmr_get_wallet_view_key( $options ) {
+	return CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options );
+}
+
+/** Get the processing api id.
+ *
+ * @param array $options CryptoWoo options.
+ *
+ * @return string|false
+ */
+function cwxmr_get_processing_api( $options ) {
+	$processing_api = CW_Validate::check_if_unset( 'processing_api_xmr', $options );
+
+	return $processing_api && 'disabled' !== $processing_api ? $processing_api : false;
 }
 
 /**
@@ -580,7 +612,7 @@ function cwma_validate_monero_address( $field, $value, $existing_value ) {
 function cwma_validate_monero_view_key( $field, $value, $existing_value ) {
 	$options = get_option( 'cryptowoo_payments' );
 
-	if ( empty( $options[ 'cryptowoo_xmr_address' ] ) && ( empty( $value ) || $value === $existing_value ) ) {
+	if ( ! cwxmr_get_wallet_address( $options ) && ( empty( $value ) || $value === $existing_value ) ) {
 		$return[ 'value' ] = $value;
 
 		return $return;
@@ -617,7 +649,7 @@ function cwma_validate_monero_view_key( $field, $value, $existing_value ) {
  * @return mixed
  */
 function cwxmr_cryptowoo_misconfig_notice( $enabled, $options ) {
-	$enabled[ 'XMR' ] = $options[ 'processing_api_xmr' ] === 'disabled' && ( (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) ) && ( (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options ) );
+	$enabled['XMR'] = cwxmr_is_enabled( $options );
 
 	return $enabled;
 }
@@ -714,7 +746,7 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
  * @return string
  */
 function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $processing, $options ) {
-	if ( $batch_currency == "XMR" && $options[ 'processing_api_xmr' ] == "xmrchain.net" ) {
+	if ( $batch_currency == "XMR" && cwxmr_get_processing_api( $options ) == "xmrchain.net" ) {
 		foreach ( $orders as $order ) {
 			//RPC: $result = monero_library()->get_payments(get_payment_id($order->order_id));
 			$payment_id = get_payment_id( $order->order_id );
@@ -724,7 +756,7 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 
 			$chain_height                                      = get_block_height_last_checked( $order );
 			$order_batch                                       = CW_Insight::insight_tx_analysis( [ $order ], $order_batch, $options, $chain_height, true );
-			$order_batch[ $order->order_id ][ 'status' ] = str_replace( "Insight", $options[ 'processing_api_xmr' ], $order_batch[ $order->order_id ][ 'status' ] );
+			$order_batch[ $order->order_id ][ 'status' ] = str_replace( "Insight", cwxmr_get_processing_api( $options ), $order_batch[ $order->order_id ][ 'status' ] );
 
 			$batch_data[ $batch_currency ][ $order->order_id ] = $order_batch[ $order->order_id ];
 		}
@@ -767,8 +799,8 @@ function convert_tx_to_insight_format( $order, $tx, $confirmed ) {
  * @return array
  */
 function cwxmr_cryptowoo_is_ready( $enabled, $options, $changed_values ) {
-	$enabled[ 'XMR' ]           = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $options, false );
-	$enabled[ 'XMR_transient' ] = (bool) CW_Validate::check_if_unset( 'cryptowoo_xmr_address', $changed_values, false );
+	$enabled[ 'XMR' ]           = (bool) cwxmr_get_wallet_address( $options );
+	$enabled[ 'XMR_transient' ] = (bool) cwxmr_get_wallet_address( $changed_values );
 
 	return $enabled;
 }
