@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - Monero Addon was Forked From: Olsm/cryptowoo-bitcoin-cash-addon, Author: Olsm
  * - Bitcoin Cash Addon was Forked From: CryptoWoo/cryptowoo-dash-addon, Author: flxstn
  * Description: Accept XMR payments in WooCommerce. Requires CryptoWoo main plugin and CryptoWoo HD Wallet Add-on.
- * Version: 1.0
+ * Version: 1.0.1
  * Author: We Program IT | legal company name: OS IT Programming AS | Company org nr: NO 921 074 077
  * Author URI: https://weprogram.it
  * License: GPLv2
