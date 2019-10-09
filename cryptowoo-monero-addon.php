@@ -649,7 +649,7 @@ function cwma_validate_monero_view_key( $field, $value, $existing_value ) {
  * @return mixed
  */
 function cwxmr_cryptowoo_misconfig_notice( $enabled, $options ) {
-	$enabled['XMR'] = cwxmr_is_enabled( $options );
+	$enabled['XMR'] = ! cwxmr_is_enabled( $options );
 
 	return $enabled;
 }
