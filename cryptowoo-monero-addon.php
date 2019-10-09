@@ -649,7 +649,9 @@ function cwma_validate_monero_view_key( $field, $value, $existing_value ) {
  * @return mixed
  */
 function cwxmr_cryptowoo_misconfig_notice( $enabled, $options ) {
-	$enabled['XMR'] = ! cwxmr_is_enabled( $options );
+	$has_wallet_address  = (bool) cwxmr_get_wallet_address( $options );
+	$has_wallet_view_key = (bool) cwxmr_get_wallet_view_key( $options );
+	$enabled['XMR']      = $has_wallet_address && $has_wallet_view_key && ! cwxmr_get_processing_api( $options );
 
 	return $enabled;
 }
