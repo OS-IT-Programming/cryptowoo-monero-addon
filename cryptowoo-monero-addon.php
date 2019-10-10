@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - Monero Addon was Forked From: Olsm/cryptowoo-bitcoin-cash-addon, Author: Olsm
  * - Bitcoin Cash Addon was Forked From: CryptoWoo/cryptowoo-dash-addon, Author: flxstn
  * Description: Accept XMR payments in WooCommerce. Requires CryptoWoo main plugin and CryptoWoo HD Wallet Add-on.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: We Program IT | legal company name: OS IT Programming AS | Company org nr: NO 921 074 077
  * Author URI: https://weprogram.it
  * License: GPLv2
@@ -23,7 +23,7 @@ require_once( 'includes/monerowp/library.php' );
 define( 'MONERO_GATEWAY_ADDRESS_PREFIX', 0x12 );
 define( 'MONERO_GATEWAY_ADDRESS_PREFIX_INTEGRATED', 0x13 );
 
-define( 'CWXMR_VER', '1.0.1' );
+define( 'CWXMR_VER', '1.0.2' );
 define( 'CWXMR_FILE', __FILE__ );
 $cw_dir          = WP_PLUGIN_DIR . "/cryptowoo";
 $cw_license_path = "$cw_dir/am-license-menu.php";
@@ -149,6 +149,27 @@ if ( cwxmr_hd_enabled() ) {
 
 	// Add payment_id to qr code
 	add_filter( 'cw_set_qr_data', 'cwxmr_set_qr_data', 10, 4 );
+
+	// Temporary disable force update order status for Monero. TODO: Add back when only checking 1 block issue solved.
+	add_action( 'woocommerce_order_actions', 'cwxmr_remove_order_meta_box_action_force_check_order', 20 );
+}
+
+/**
+ * Disable force update order status for Monero.
+ * TODO: Add back when only checking 1 block issue solved.
+ *
+ * @param array $actions order actions array to display.
+ * @return array - updated actions.
+ */
+function cwxmr_remove_order_meta_box_action_force_check_order( $actions ) {
+    /* @var WC_Order $theorder Woocommerce Order object. */
+    global $theorder;
+
+    if ( CW_PAYMENT_METHOD_ID === $theorder->get_payment_method() && 'XMR' === $theorder->get_meta( 'payment_currency' ) ) {
+        unset( $actions['force_update_payment_status_action'] );
+    }
+
+    return  $actions;
 }
 
 /**
