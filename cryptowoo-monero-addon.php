@@ -165,7 +165,7 @@ function cwxmr_remove_order_meta_box_action_force_check_order( $actions ) {
     /* @var WC_Order $theorder Woocommerce Order object. */
     global $theorder;
 
-    if ( CW_PAYMENT_METHOD_ID === $theorder->get_payment_method() && 'XMR' === $theorder->get_meta( 'payment_currency' ) ) {
+    if ( CW_PAYMENT_METHOD_ID === $theorder->get_payment_method() && 'XMR' === $theorder->get_meta( 'payment_currency' ) && ! $theorder->get_meta( 'has_txids' ) ) {
         unset( $actions['force_update_payment_status_action'] );
     }
 
