@@ -378,16 +378,28 @@ function save_last_checked_block_height( $order, $bc_height ) {
  * @return bool|stdClass[]
  */
 function verify_zero_conf( $payment_id, $order, $options ) {
-	$tools            = new NodeTools();
-	$txs_from_mempool = $tools->get_mempool_txs();
-
-	// Could not find transactions from mempool? TODO: Error logging
-	if ( ! isset( $txs_from_mempool[ 'data' ][ 'txs' ] ) || ! is_array( $txs_from_mempool[ 'data' ][ 'txs' ] ) ) {
-		return false;
+	// If order meta already has txid we will just check the tx instead of getting txs from mempool.
+	$txids = unserialize( $order->txids ) ;
+	if ( ! empty( $txids ) ) {
+		foreach ( $txids as $txid => $value ) {
+			$txs_from_mempool[] = [ 'tx_hash' => $txid ];
+		}
 	}
 
-	$txs_from_mempool = $txs_from_mempool[ 'data' ][ 'txs' ];
-	$tx_found         = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_mempool );
+	// We will only get txs from mempool if no tx is already found.
+	if ( empty( $txids ) ) {
+		$tools            = new NodeTools();
+		$txs_from_mempool = $tools->get_mempool_txs();
+
+		// Could not find transactions from mempool? TODO: Error logging
+		if ( ! isset( $txs_from_mempool[ 'data' ][ 'txs' ] ) || ! is_array( $txs_from_mempool[ 'data' ][ 'txs' ] ) ) {
+			return false;
+		}
+
+		$txs_from_mempool = $txs_from_mempool[ 'data' ][ 'txs' ];
+	}
+
+	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_mempool );
 
 	if ( is_array( $tx_found ) ) {
 		return convert_tx_to_insight_format( $order, $tx_found, false );
@@ -401,45 +413,56 @@ function verify_zero_conf( $payment_id, $order, $options ) {
  * Authors: Serhack and cryptochangements
  *
  * @param $payment_id
- * @param $order
+ * @param WC_Order $order
  * @param $options
  *
  * @return bool|stdClass[]
  */
 function verify_non_rpc( $payment_id, $order, $options ) {
-	$tools          = new NodeTools();
-	$bc_height      = $tools->get_last_block_height();
-	$bc_height_last = get_block_height_last_checked( $order );
+	// If order meta already has txid we will just check the tx instead of getting txs from blocks.
+	$txids = unserialize( $order->txids ) ;
+	if ( ! empty( $txids ) ) {
+	    foreach ( $txids as $txid => $value ) {
+	        $txs_from_block[] = [ 'tx_hash' => $txid ];
+        }
+    }
 
-	if ( $bc_height_last == $bc_height ) {
-		// Do not check block if already checked
-		return false;
-	} else if ( $bc_height_last && $bc_height > $bc_height_last ) {
-		// Check the next block if we previously checked a block
-		$bc_height = $bc_height_last + 1;
-	} else if ( $bc_height_start = get_block_height_start( $order ) ) {
-		// Check the first block if we did not previously check a block
-		$bc_height = $bc_height_start;
-	}
+	// We will only get txs from block if no tx is already found.
+    if ( empty( $txids ) ) {
+		$tools          = new NodeTools();
+		$bc_height      = $tools->get_last_block_height();
+		$bc_height_last = get_block_height_last_checked( $order );
 
-	// Could not find block height? TODO: Error logging
-	if ( - 1 === $bc_height ) {
-		return false;
-	}
+		if ( $bc_height_last == $bc_height ) {
+			// Do not check block if already checked
+			return false;
+		} else if ( $bc_height_last && $bc_height > $bc_height_last ) {
+			// Check the next block if we previously checked a block
+			$bc_height = $bc_height_last + 1;
+		} else if ( $bc_height_start = get_block_height_start( $order ) ) {
+			// Check the first block if we did not previously check a block
+			$bc_height = $bc_height_start;
+		}
 
-	$txs_from_block = $tools->get_txs_from_block( $bc_height );
+		// Could not find block height? TODO: Error logging
+		if ( - 1 === $bc_height ) {
+			return false;
+		}
 
-	// Could not find transactions from block? TODO: Error logging
-	if ( ! isset( $txs_from_block ) || ! is_array( $txs_from_block ) ) {
-		return false;
-	}
+		$txs_from_block = $tools->get_txs_from_block( $bc_height );
+
+		// Could not find transactions from block? TODO: Error logging
+		if ( ! isset( $txs_from_block ) || ! is_array( $txs_from_block ) ) {
+			return false;
+		}
+
+		// Try to save last checked block height to order meta
+		if ( $bc_height_last < $bc_height && false === save_last_checked_block_height( $order, $bc_height ) ) {
+			// TODO: Error logging
+		}
+    }
 
 	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_block );
-
-	// Try to save last checked block height to order meta
-	if ( $bc_height_last < $bc_height && false === save_last_checked_block_height( $order, $bc_height ) ) {
-		// TODO: Error logging
-	}
 
 	if ( is_array( $tx_found ) ) {
 		return convert_tx_to_insight_format( $order, $tx_found, true );
