@@ -491,7 +491,7 @@ function find_tx_non_rpc( $order, $options, $payment_id, $txs ) {
 		//$decrypted_payment_id = $tx['payment_id8'] ? monero_cryptonote()->stealth_payment_id( $tx['payment_id8'], $tx['tx_hash'], $options[ 'cryptowoo_xmr_view_key' ] ) : '';
 	    //if ( $decrypted_payment_id == $payment_id ) {
 			$tx_hash = $tx[ 'tx_hash' ];
-			$result  = $tools->check_tx( $tx_hash, $order->address, cwxmr_get_wallet_view_key( $options ) );
+			$result  = $tools->check_tx( $tx_hash, cwxmr_get_wallet_address( $options ), cwxmr_get_wallet_view_key( $options ) );
 			if ( $result ) {
 				$tx_found             = $tx;
 				$tx_found[ 'output' ] = $result;
