@@ -415,10 +415,11 @@ function verify_zero_conf( $payment_id, $order, $options ) {
  * @param $payment_id
  * @param WC_Order $order
  * @param $options
+ * @param $blocks_checked
  *
  * @return bool|stdClass[]
  */
-function verify_non_rpc( $payment_id, $order, $options ) {
+function verify_non_rpc( $payment_id, $order, $options, $blocks_checked = 0 ) {
 	// If order meta already has txid we will just check the tx instead of getting txs from blocks.
 	$txids = unserialize( $order->txids ) ;
 	if ( ! empty( $txids ) ) {
@@ -463,9 +464,12 @@ function verify_non_rpc( $payment_id, $order, $options ) {
     }
 
 	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_block );
+	$blocks_checked++;
 
 	if ( is_array( $tx_found ) ) {
 		return convert_tx_to_insight_format( $order, $tx_found, true );
+	} elseif ( $blocks_checked < $options['processing_block_quantity_xmr'] ) {
+		verify_non_rpc( $payment_id, $order, $options, $blocks_checked );
 	}
 
 	return false;
@@ -1162,6 +1166,40 @@ function cwxmr_add_fields() {
 		For maximum privacy use your own monero-wallet-rpc instance.", 'cryptowoo' ),
 		'required' => array(
 			array('processing_api_xmr', '=', 'xmrchain.net'),
+		)
+	) );
+
+	/*
+	 * Quantity of blocks to check each round
+	 */
+	Redux::setField( 'cryptowoo_payments', array(
+		'section_id' => 'processing-api-resources',
+		'id'         => 'processing_block_quantity_xmr',
+		'type'       => 'spinner',
+		'title'      => sprintf( __( '%s Quantity of blocks to check per cron job', 'cryptowoo' ), 'Monero' ),
+		'subtitle'   => sprintf( __( 'Edit the number of blocks you want to check in the %s blockchain per cron job. Higher than one is not recommended but may necessary if your server does not allow cron jobs with 2 minutes or less delay for optimal payment processing.', 'cryptowoo' ), 'Monero' ),
+		'desc'       => sprintf( __( 'Number of blocks to check per cron job for <strong>%s</strong> transactions. You may want to look into the better solutions than this workaround like a host allowing frequent cron jobs, or uptimerobot.com and similar uptime services to trigger the cron job frequently.', 'cryptowoo' ), 'Monero' ),
+		'default'    => 1,
+		'min'        => 1,
+		'step'       => 1,
+		'max'        => 10,
+	) );
+
+	Redux::setField( 'cryptowoo_payments', array(
+		'section_id' => 'processing-api-resources',
+		'id'        => 'processing_block_quantity_xmr_warning',
+		'type'      => 'info',
+		'notice'    => false,
+		'icon'      => 'fa fa-info-circle',
+		'title'     => __('A note on performance:', 'cryptowoo'),
+		'desc'      => __( "Checking more than 1 block per cron job is not recommended for performance reasons. 
+			This will slow down your cron jobs. An infrequent cron job also has other issues. 
+			Such as exchange rates not being as up to date as they could be, and payment processing and product delivery to be slower. 
+			If you have to increase this limit you may want to look into a hosting that will allow you to have more frequent cron jobs. 
+			Alternatively we recommend uptimerobot.com and similar uptime monitoring services. 
+			If they are monitoring the wp-cron.php it is the same as triggering the WP Cron from the server cron.", 'cryptowoo' ),
+		'required' => array(
+			array('processing_block_quantity_xmr', '>', 1),
 		)
 	) );
 
