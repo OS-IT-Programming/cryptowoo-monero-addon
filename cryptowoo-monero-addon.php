@@ -454,7 +454,7 @@ function verify_non_rpc( $payment_id, $order, $options, $blocks_checked = 0 ) {
 			$order_obj = wc_get_order( $order->order_id );
 			$order_obj->add_order_note( "Block scan timeout reached. $seconds seconds passed and $blocks_checked blocks were scanned." );
 		}
-		CW_AdminMain::cryptowoo_log_data( 0, __FUNCTION__, date( 'Y-m-d H:i:s' ) . __FILE__ . "\n Block scan timeout reached. $seconds seconds passed and $blocks_checked blocks were scanned.", 'debug' );
+		CW_AdminMain::cryptowoo_log_data( 0, __FUNCTION__, date( 'Y-m-d H:i:s' ) . __FILE__ . "\n Block scan timeout reached for order {$order->order_id}. $seconds seconds passed and $blocks_checked blocks were scanned.", 'debug' );
 	} else {
 		return verify_non_rpc( $payment_id, $order, $options, $blocks_checked );
 	}
