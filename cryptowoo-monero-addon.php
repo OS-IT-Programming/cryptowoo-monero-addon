@@ -149,27 +149,6 @@ if ( cwxmr_hd_enabled() ) {
 
 	// Add payment_id to qr code
 	add_filter( 'cw_set_qr_data', 'cwxmr_set_qr_data', 10, 4 );
-
-	// Temporary disable force update order status for Monero. TODO: Add back when only checking 1 block issue solved.
-	add_action( 'woocommerce_order_actions', 'cwxmr_remove_order_meta_box_action_force_check_order', 20 );
-}
-
-/**
- * Disable force update order status for Monero.
- * TODO: Add back when only checking 1 block issue solved.
- *
- * @param array $actions order actions array to display.
- * @return array - updated actions.
- */
-function cwxmr_remove_order_meta_box_action_force_check_order( $actions ) {
-    /* @var WC_Order $theorder Woocommerce Order object. */
-    global $theorder;
-
-    if ( CW_PAYMENT_METHOD_ID === $theorder->get_payment_method() && 'XMR' === $theorder->get_meta( 'payment_currency' ) && ! $theorder->get_meta( 'has_txids' ) ) {
-        unset( $actions['force_update_payment_status_action'] );
-    }
-
-    return  $actions;
 }
 
 /**
