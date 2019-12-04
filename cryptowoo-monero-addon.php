@@ -464,12 +464,20 @@ function verify_non_rpc( $payment_id, $order, $options, $blocks_checked = 0 ) {
     }
 
 	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_block );
+	$seconds  = timer_stop();
 	$blocks_checked++;
 
 	if ( is_array( $tx_found ) ) {
 		return convert_tx_to_insight_format( $order, $tx_found, true );
-	} elseif ( $blocks_checked < $options['processing_block_quantity_xmr'] ) {
-		verify_non_rpc( $payment_id, $order, $options, $blocks_checked );
+	} elseif ( $seconds > $options['processing_block_timeout_xmr'] ) {
+		// Do proper logging of block scan timeout.
+		if ( function_exists( 'get_current_screen' ) && 'shop_order' === get_current_screen()->id ) {
+			$order_obj = wc_get_order( $order->order_id );
+			$order_obj->add_order_note( "Block scan timeout reached. $seconds seconds passed and $blocks_checked blocks were scanned." );
+		}
+		CW_AdminMain::cryptowoo_log_data( 0, __FUNCTION__, date( 'Y-m-d H:i:s' ) . __FILE__ . "\n Block scan timeout reached. $seconds seconds passed and $blocks_checked blocks were scanned.", 'debug' );
+	} else {
+		return verify_non_rpc( $payment_id, $order, $options, $blocks_checked );
 	}
 
 	return false;
@@ -800,6 +808,7 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 		foreach ( $orders as $order ) {
 			//RPC: $result = monero_library()->get_payments(get_payment_id($order->order_id));
 			$payment_id = get_payment_id( $order->order_id );
+			timer_start();
 			if ( ( ! $order_batch = verify_non_rpc( $payment_id, $order, $options ) ) && "0" == $order->received_unconfirmed ) {
 				$order_batch = verify_zero_conf( $payment_id, $order, $options );
 			}
@@ -1170,36 +1179,36 @@ function cwxmr_add_fields() {
 	) );
 
 	/*
-	 * Quantity of blocks to check each round
+	 * Timeout when scanning blocks in seconds
 	 */
 	Redux::setField( 'cryptowoo_payments', array(
 		'section_id' => 'processing-api-resources',
-		'id'         => 'processing_block_quantity_xmr',
+		'id'         => 'processing_block_timeout_xmr',
 		'type'       => 'spinner',
-		'title'      => sprintf( __( '%s Quantity of blocks to check per cron job', 'cryptowoo' ), 'Monero' ),
-		'subtitle'   => sprintf( __( 'Edit the number of blocks you want to check in the %s blockchain per cron job. Higher than one is not recommended but may necessary if your server does not allow cron jobs with 2 minutes or less delay for optimal payment processing.', 'cryptowoo' ), 'Monero' ),
-		'desc'       => sprintf( __( 'Number of blocks to check per cron job for <strong>%s</strong> transactions. You may want to look into the better solutions than this workaround like a host allowing frequent cron jobs, or uptimerobot.com and similar uptime services to trigger the cron job frequently.', 'cryptowoo' ), 'Monero' ),
-		'default'    => 1,
+		'title'      => sprintf( __( '%s block scan timeout in seconds', 'cryptowoo' ), 'Monero' ),
+		'subtitle'   => sprintf( __( 'Edit the max number of seconds you want to check blocks in the %s blockchain. Higher than 5 seconds is not recommended but may necessary if your server does not allow cron jobs with 2 minutes or less delay for optimal payment processing.', 'cryptowoo' ), 'Monero' ),
+		'desc'       => sprintf( __( 'Number of seconds to scan blocks for <strong>%s</strong> transactions. You may want to look into better solutions than this workaround like a host allowing frequent cron jobs, or uptime services like uptimerobot.com to trigger the cron job frequently.', 'cryptowoo' ), 'Monero' ),
+		'default'    => 5,
 		'min'        => 1,
 		'step'       => 1,
-		'max'        => 10,
+		'max'        => 100,
 	) );
 
 	Redux::setField( 'cryptowoo_payments', array(
 		'section_id' => 'processing-api-resources',
-		'id'        => 'processing_block_quantity_xmr_warning',
+		'id'        => 'processing_block_timeout_xmr_warning',
 		'type'      => 'info',
 		'notice'    => false,
 		'icon'      => 'fa fa-info-circle',
 		'title'     => __('A note on performance:', 'cryptowoo'),
-		'desc'      => __( "Checking more than 1 block per cron job is not recommended for performance reasons. 
+		'desc'      => __( "Checking for blocks more than 5 seconds per cron job is not recommended for performance reasons. 
 			This will slow down your cron jobs. An infrequent cron job also has other issues. 
 			Such as exchange rates not being as up to date as they could be, and payment processing and product delivery to be slower. 
 			If you have to increase this limit you may want to look into a hosting that will allow you to have more frequent cron jobs. 
 			Alternatively we recommend uptimerobot.com and similar uptime monitoring services. 
 			If they are monitoring the wp-cron.php it is the same as triggering the WP Cron from the server cron.", 'cryptowoo' ),
 		'required' => array(
-			array('processing_block_quantity_xmr', '>', 1),
+			array('processing_block_timeout_xmr', '>', 5),
 		)
 	) );
 
