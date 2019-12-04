@@ -394,11 +394,12 @@ function verify_zero_conf( $payment_id, $order, $options ) {
  * @param $payment_id
  * @param WC_Order $order
  * @param $options
+ * @param $timestamp_start
  * @param $blocks_checked
  *
  * @return bool|stdClass[]
  */
-function verify_non_rpc( $payment_id, $order, $options, $blocks_checked = 0 ) {
+function verify_non_rpc( $payment_id, $order, $options, $timestamp_start, $blocks_checked = 0 ) {
 	// If order meta already has txid we will just check the tx instead of getting txs from blocks.
 	$txids = unserialize( $order->txids ) ;
 	if ( ! empty( $txids ) ) {
@@ -443,7 +444,7 @@ function verify_non_rpc( $payment_id, $order, $options, $blocks_checked = 0 ) {
     }
 
 	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_block );
-	$seconds  = timer_stop();
+	$seconds  = time() - $timestamp_start;
 	$blocks_checked++;
 
 	if ( is_array( $tx_found ) ) {
@@ -456,7 +457,7 @@ function verify_non_rpc( $payment_id, $order, $options, $blocks_checked = 0 ) {
 		}
 		CW_AdminMain::cryptowoo_log_data( 0, __FUNCTION__, date( 'Y-m-d H:i:s' ) . __FILE__ . "\n Block scan timeout reached for order {$order->order_id}. $seconds seconds passed and $blocks_checked blocks were scanned.", 'debug' );
 	} else {
-		return verify_non_rpc( $payment_id, $order, $options, $blocks_checked );
+		return verify_non_rpc( $payment_id, $order, $options, $timestamp_start, $blocks_checked );
 	}
 
 	return false;
@@ -787,8 +788,7 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 		foreach ( $orders as $order ) {
 			//RPC: $result = monero_library()->get_payments(get_payment_id($order->order_id));
 			$payment_id = get_payment_id( $order->order_id );
-			timer_start();
-			if ( ( ! $order_batch = verify_non_rpc( $payment_id, $order, $options ) ) && "0" == $order->received_unconfirmed ) {
+			if ( ( ! $order_batch = verify_non_rpc( $payment_id, $order, $options, time() ) ) && "0" == $order->received_unconfirmed ) {
 				$order_batch = verify_zero_conf( $payment_id, $order, $options );
 			}
 
