@@ -1155,10 +1155,10 @@ function cwxmr_add_fields() {
 		'icon'      => 'fa fa-eye fa-2x',
 		'title'     => __('A note on privacy:', 'cryptowoo'),
 		'desc'      => __( "When you validate transactions with your private viewkey,
-		your HTTPS encrypted viewkey is sent to (but not stored on) xmrchain.net. 
-		This could potentially allow an attacker to see your incoming, but not outgoing, 
-		transactions if he were to get his hands on your viewkey. Even if this were to happen, 
-		your funds would still be safe and it would be impossible for somebody to steal your money. 
+		your HTTPS encrypted viewkey is sent to (but not stored on) xmrchain.net.
+		This could potentially allow an attacker to see your incoming, but not outgoing,
+		transactions if he were to get his hands on your viewkey. Even if this were to happen,
+		your funds would still be safe and it would be impossible for somebody to steal your money.
 		For maximum privacy use your own monero-wallet-rpc instance.", 'cryptowoo' ),
 		'required' => array(
 			array('processing_api_xmr', '=', 'xmrchain.net'),
@@ -1188,11 +1188,11 @@ function cwxmr_add_fields() {
 		'notice'    => false,
 		'icon'      => 'fa fa-info-circle',
 		'title'     => __('A note on performance:', 'cryptowoo'),
-		'desc'      => __( "Checking for blocks for more than 5 seconds per cron job is not recommended for performance reasons as it will slow down pageloads when a cron job runs. 
-			An infrequent cron job also has issues such as exchange rates not being as up to date and payment processing being slower. 
-			Therefore we recommend that you should ideally look for a host that allows at lest 1 cron job per minute instead of trying to check more blocks per cron job.
-			Using uptimerobot.com and similar uptime monitoring services is recommended as these can monitor the wp-cron.php file, which is the same as triggering the WP Cron from the server. 
-			You can set this up by simply registering for downtime notifications on your website which will ensure that the cron runs at least every 5 minutes", 'cryptowoo' ),
+		'desc'      => sprintf(__( 'Checking for blocks for more than 5 seconds per cron job is not recommended for performance reasons as it will slow down your site while the cron job runs.
+			An infrequent cron job also has issues such as exchange rates not being as up to date and payment processing being slower.
+			Therefore we recommend that you should ideally look for a host that allows at least 1 cron job per minute instead of trying to check more blocks per cron job.
+			If you can not set a cron job interval at one minute or lower, it is recommended to use uptimerobot.com or similar uptime monitoring services to "monitor the uptime" of the wp-cron.php file, which has the same effect as triggering the WP Cron from the server.
+			You can set this up by simply registering for downtime notifications on the URL %1$s%2$s/wp-cron.php%3$s which will ensure that WP Cron is triggered by the requests from the monitoring service.', 'cryptowoo' ), '<code>', get_bloginfo('url'), '</code>'),
 		'required' => array(
 			array('processing_block_timeout_xmr', '>', 5),
 		)
