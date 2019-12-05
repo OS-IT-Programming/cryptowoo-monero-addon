@@ -624,7 +624,7 @@ function cwma_validate_monero_address( $field, $value, $existing_value ) {
 
 		$value = $existing_value;
 
-		$field[ 'msg' ]    = "Monero address invalid! <br>";
+		$field[ 'msg' ]    = "The Monero address is invalid! <br>";
 		$return[ 'error' ] = $field;
 
 		if ( WP_DEBUG ) {
@@ -664,7 +664,7 @@ function cwma_validate_monero_view_key( $field, $value, $existing_value ) {
 
 		$value = $existing_value;
 
-		$field[ 'msg' ]    = "Monero view key invalid! <br>";
+		$field[ 'msg' ]    = "The Monero view key is invalid! <br>";
 		$return[ 'error' ] = $field;
 
 		if ( WP_DEBUG ) {
@@ -1147,7 +1147,7 @@ function cwxmr_add_fields() {
 		'icon'      => 'fa fa-eye fa-2x',
 		'title'     => __('A note on privacy:', 'cryptowoo'),
 		'desc'      => __( "When you validate transactions with your private viewkey,
-		your viewkey is sent to (but not stored on) xmrchain.net over HTTPS. 
+		your HTTPS encrypted viewkey is sent to (but not stored on) xmrchain.net. 
 		This could potentially allow an attacker to see your incoming, but not outgoing, 
 		transactions if he were to get his hands on your viewkey. Even if this were to happen, 
 		your funds would still be safe and it would be impossible for somebody to steal your money. 
@@ -1165,8 +1165,8 @@ function cwxmr_add_fields() {
 		'id'         => 'processing_block_timeout_xmr',
 		'type'       => 'spinner',
 		'title'      => sprintf( __( '%s block scan timeout in seconds', 'cryptowoo' ), 'Monero' ),
-		'subtitle'   => sprintf( __( 'Edit the max number of seconds you want to check blocks in the %s blockchain. Higher than 5 seconds is not recommended but may necessary if your server does not allow cron jobs with 2 minutes or less delay for optimal payment processing.', 'cryptowoo' ), 'Monero' ),
-		'desc'       => sprintf( __( 'Number of seconds to scan blocks for <strong>%s</strong> transactions. You may want to look into better solutions than this workaround like a host allowing frequent cron jobs, or uptime services like uptimerobot.com to trigger the cron job frequently.', 'cryptowoo' ), 'Monero' ),
+		'subtitle'   => sprintf( __( 'Edit the max number of seconds you want to check blocks in the %s blockchain. More than 5 seconds is not recommended but may be necessary if your server does not allow cron jobs with 2 minutes or less delay.', 'cryptowoo' ), 'Monero' ),
+		'desc'       => sprintf( __( 'Number of seconds to scan blocks for <strong>%s</strong> transactions.', 'cryptowoo' ), 'Monero' ),
 		'default'    => 5,
 		'min'        => 1,
 		'step'       => 1,
@@ -1180,12 +1180,11 @@ function cwxmr_add_fields() {
 		'notice'    => false,
 		'icon'      => 'fa fa-info-circle',
 		'title'     => __('A note on performance:', 'cryptowoo'),
-		'desc'      => __( "Checking for blocks more than 5 seconds per cron job is not recommended for performance reasons. 
-			This will slow down your cron jobs. An infrequent cron job also has other issues. 
-			Such as exchange rates not being as up to date as they could be, and payment processing and product delivery to be slower. 
-			If you have to increase this limit you may want to look into a hosting that will allow you to have more frequent cron jobs. 
-			Alternatively we recommend uptimerobot.com and similar uptime monitoring services. 
-			If they are monitoring the wp-cron.php it is the same as triggering the WP Cron from the server cron.", 'cryptowoo' ),
+		'desc'      => __( "Checking for blocks for more than 5 seconds per cron job is not recommended for performance reasons as it will slow down pageloads when a cron job runs. 
+			An infrequent cron job also has issues such as exchange rates not being as up to date and payment processing being slower. 
+			Therefore we recommend that you should ideally look for a host that allows at lest 1 cron job per minute instead of trying to check more blocks per cron job.
+			Using uptimerobot.com and similar uptime monitoring services is recommended as these can monitor the wp-cron.php file, which is the same as triggering the WP Cron from the server. 
+			You can set this up by simply registering for downtime notifications on your website which will ensure that the cron runs at least every 5 minutes", 'cryptowoo' ),
 		'required' => array(
 			array('processing_block_timeout_xmr', '>', 5),
 		)
@@ -1397,4 +1396,3 @@ function cwxmr_add_fields() {
 	) );
 
 }
-
