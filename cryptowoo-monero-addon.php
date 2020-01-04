@@ -361,7 +361,7 @@ function verify_zero_conf( $payment_id, $order, $options ) {
 	$txids = unserialize( $order->txids ) ;
 	if ( ! empty( $txids ) ) {
 		foreach ( $txids as $txid => $value ) {
-			$txs_from_mempool[] = [ 'tx_hash' => $txid ];
+			$txs_from_mempool[] = [ 'tx_hash' => $txid, 'payment_id' => $payment_id ];
 		}
 	}
 
@@ -378,7 +378,7 @@ function verify_zero_conf( $payment_id, $order, $options ) {
 		$txs_from_mempool = $txs_from_mempool[ 'data' ][ 'txs' ];
 	}
 
-	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_mempool );
+	$tx_found = find_tx_non_rpc( $options, $payment_id, $txs_from_mempool );
 
 	if ( is_array( $tx_found ) ) {
 		return convert_tx_to_insight_format( $order, $tx_found, false );
@@ -388,8 +388,9 @@ function verify_zero_conf( $payment_id, $order, $options ) {
 }
 
 /**
- * source: monerowp/include/monero_payments.php verify_non_rpc()
+ * Source: monerowp/include/monero_payments.php verify_non_rpc()
  * Authors: Serhack and cryptochangements
+ * Modified by: Olav Småriset | Company: We Program IT | Website: weprogram.it
  *
  * @param $payment_id
  * @param WC_Order $order
@@ -400,13 +401,13 @@ function verify_zero_conf( $payment_id, $order, $options ) {
  * @return bool|stdClass[]
  */
 function verify_non_rpc( $payment_id, $order, $options, $timestamp_start, $blocks_checked = 0 ) {
-	// If order meta already has txid we will just check the tx instead of getting txs from blocks.
-	$txids = unserialize( $order->txids ) ;
+	// If order meta already has txid we will just check the tx instead of getting txs from mempool.
+	$txids = unserialize( $order->txids );
 	if ( ! empty( $txids ) ) {
-	    foreach ( $txids as $txid => $value ) {
-	        $txs_from_block[] = [ 'tx_hash' => $txid ];
-        }
-    }
+		foreach ( $txids as $txid => $value ) {
+			$txs_from_block[] = [ 'tx_hash' => $txid, 'payment_id' => $payment_id ];
+		}
+	}
 
 	// We will only get txs from block if no tx is already found.
     if ( empty( $txids ) ) {
@@ -443,7 +444,7 @@ function verify_non_rpc( $payment_id, $order, $options, $timestamp_start, $block
 		}
     }
 
-	$tx_found = find_tx_non_rpc( $order, $options, $payment_id, $txs_from_block );
+	$tx_found = find_tx_non_rpc( $options, $payment_id, $txs_from_block );
 	$seconds  = time() - $timestamp_start;
 	$blocks_checked++;
 
@@ -464,32 +465,39 @@ function verify_non_rpc( $payment_id, $order, $options, $timestamp_start, $block
 }
 
 /**
- * source: monerowp/include/monero_payments.php verify_non_rpc()
- * Authors: Serhack and cryptochangements
+ * Source: monerowp/include/monero_payments.php verify_non_rpc()
+ * Authors: Serhack and cryptochangements.
+ * Modified by: Olav Småriset | Company: We Program IT | Website: weprogram.it
  *
- * @param $order
- * @param $options
- * @param $txs
- * @param $payment_id
+ * @param array  $options CryptoWoo options.
+ * @param string $payment_id non-encrypted Payment ID.
+ * @param array  $txs Transactions from block.
  *
- * @return bool
+ * @return false|array
  */
-function find_tx_non_rpc( $order, $options, $payment_id, $txs ) {
+function find_tx_non_rpc( $options, $payment_id, $txs ) {
 	$tools    = new NodeTools();
 	$tx_found = false;
 
 	foreach ( $txs as $tx ) {
-	    // TODO: Only call check_tx if payment id is found
-		//$decrypted_payment_id = $tx['payment_id8'] ? monero_cryptonote()->stealth_payment_id( $tx['payment_id8'], $tx['tx_hash'], $options[ 'cryptowoo_xmr_view_key' ] ) : '';
-	    //if ( $decrypted_payment_id == $payment_id ) {
-			$tx_hash = $tx[ 'tx_hash' ];
-			$result  = $tools->check_tx( $tx_hash, cwxmr_get_wallet_address( $options ), cwxmr_get_wallet_view_key( $options ) );
+		// Decrypt payment id so we can match it. Match unencrypted payment id when scanning already found tx.
+		if ( ! empty( $tx['payment_id8'] ) ) {
+			$tx_pub_key    = monero_cryptonote()->txpub_from_extra( $tx['extra'] );
+			$tx_payment_id = monero_cryptonote()->stealth_payment_id( $tx['payment_id8'], $tx_pub_key, cwxmr_get_wallet_view_key( $options ) );
+		} else {
+			$tx_payment_id = isset( $tx['payment_id'] ) ? $tx['payment_id'] : '';
+		}
+
+		// Make sure decrypted payment id in tx data from blocks match the payment id in order meta.
+        // Check if the tx output match our wallet address and then the tx is found and we return it.
+		if ( $payment_id === $tx_payment_id ) {
+			$result = $tools->check_tx( $tx['tx_hash'], cwxmr_get_wallet_address( $options ), cwxmr_get_wallet_view_key( $options ) );
 			if ( $result ) {
-				$tx_found             = $tx;
-				$tx_found[ 'output' ] = $result;
+				$tx_found           = $tx;
+				$tx_found['output'] = $result;
 				break;
 			}
-		//}
+		}
 	}
 
 	return $tx_found;
