@@ -950,7 +950,7 @@ function cwxmr_cron_update_exchange_data( $data, $options ) {
 	$xmr = CW_ExchangeRates::processing()->update_coin_rates( 'XMR', $options );
 
 	// Maybe log exchange rate updates
-	if ( (bool) $options[ 'logging' ][ 'rates' ] ) {
+	if ( CW_AdminMain::logging_is_enabled( 'debug' ) ) {
 		if ( $xmr[ 'status' ] === 'not updated' || strpos( $xmr[ 'status' ], 'disabled' ) ) {
 			$data[ 'xmr' ] = strpos( $xmr[ 'status' ], 'disabled' ) ? $xmr[ 'status' ] : $xmr[ 'last_update' ];
 		} else {
