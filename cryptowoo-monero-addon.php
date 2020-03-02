@@ -452,7 +452,7 @@ function verify_non_rpc( $payment_id, $order, $options, $timestamp_start, $block
 		return convert_tx_to_insight_format( $order, $tx_found, true );
 	} elseif ( $seconds > $options['processing_block_timeout_xmr'] ) {
 		// Do proper logging of block scan timeout.
-		if ( function_exists( 'get_current_screen' ) && 'shop_order' === get_current_screen()->id ) {
+		if ( function_exists( 'get_current_screen' ) && is_object( get_current_screen() ) && 'shop_order' === get_current_screen()->id ) {
 			$order_obj = wc_get_order( $order->order_id );
 			$order_obj->add_order_note( "Block scan timeout reached. $seconds seconds passed and $blocks_checked blocks were scanned." );
 		}
