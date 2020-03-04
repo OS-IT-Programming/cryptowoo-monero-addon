@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - Monero Addon was Forked From: Olsm/cryptowoo-bitcoin-cash-addon, Author: Olsm
  * - Bitcoin Cash Addon was Forked From: CryptoWoo/cryptowoo-dash-addon, Author: flxstn
  * Description: Accept XMR payments in WooCommerce. Requires CryptoWoo main plugin and CryptoWoo HD Wallet Add-on.
- * Version: 1.0.5
+ * Version: 1.0.6
  * Author: We Program IT | legal company name: OS IT Programming AS | Company org nr: NO 921 074 077
  * Author URI: https://weprogram.it
  * License: GPLv2
@@ -23,19 +23,15 @@ require_once( 'includes/monerowp/library.php' );
 define( 'MONERO_GATEWAY_ADDRESS_PREFIX', 0x12 );
 define( 'MONERO_GATEWAY_ADDRESS_PREFIX_INTEGRATED', 0x13 );
 
-define( 'CWXMR_VER', '1.0.5' );
+define( 'CWXMR_VER', '1.0.6' );
 define( 'CWXMR_FILE', __FILE__ );
 $cw_dir          = WP_PLUGIN_DIR . "/cryptowoo";
 $cw_license_path = "$cw_dir/am-license-menu.php";
 
-// Load the plugin update library if it is not already loaded
-if ( ! class_exists( 'CWXMR_License_Menu' ) && file_exists( $cw_license_path ) ) {
-	require_once( $cw_license_path );
-
-	class CWXMR_License_Menu extends CWoo_License_Menu {};
-
-	CWXMR_License_Menu::instance( CWXMR_FILE, 'CryptoWoo Monero Add-on', CWXMR_VER, 'plugin', 'https://www.cryptowoo.com/' );
-}
+// Load the plugin update library.
+add_action( 'cryptowoo_api_manager_loaded', function () {
+	new CW_License_Menu( __FILE__, 9713, CWXMR_VER );
+} );
 
 /**
  * Plugin activation
