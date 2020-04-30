@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - Monero Addon was Forked From: Olsm/cryptowoo-bitcoin-cash-addon, Author: Olsm
  * - Bitcoin Cash Addon was Forked From: CryptoWoo/cryptowoo-dash-addon, Author: flxstn
  * Description: Accept XMR payments in WooCommerce. Requires CryptoWoo main plugin and CryptoWoo HD Wallet Add-on.
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: We Program IT | legal company name: OS IT Programming AS | Company org nr: NO 921 074 077
  * Author URI: https://weprogram.it
  * License: GPLv2
@@ -23,7 +23,7 @@ require_once( 'includes/monerowp/library.php' );
 define( 'MONERO_GATEWAY_ADDRESS_PREFIX', 0x12 );
 define( 'MONERO_GATEWAY_ADDRESS_PREFIX_INTEGRATED', 0x13 );
 
-define( 'CWXMR_VER', '1.0.6' );
+define( 'CWXMR_VER', '1.0.7' );
 define( 'CWXMR_FILE', __FILE__ );
 $cw_dir          = WP_PLUGIN_DIR . "/cryptowoo";
 $cw_license_path = "$cw_dir/am-license-menu.php";
@@ -1217,12 +1217,13 @@ function cwxmr_add_fields() {
 		'subtitle'          => sprintf( __( 'Choose the exchange you prefer to use to calculate the %sMonero to Bitcoin exchange rate%s', 'cryptowoo' ), '<strong>', '</strong>.' ),
 		'desc'              => sprintf( __( 'Cross-calculated via BTC/%s', 'cryptowoo' ), $woocommerce_currency ),
 		'options'           => array(
+			'coingecko'  => 'CoinGecko',
 			'bittrex'    => 'Bittrex',
 			'poloniex'   => 'Poloniex',
 			'shapeshift' => 'ShapeShift',
-			'binance' => 'Binance'
+			'binance'    => 'Binance'
 		),
-		'default'           => 'poloniex',
+		'default'           => 'coingecko',
 		'ajax_save'         => false, // Force page load when this changes
 		'validate_callback' => 'redux_validate_exchange_api',
 		'select2'           => array( 'allowClear' => false )
