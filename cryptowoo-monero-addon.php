@@ -179,7 +179,7 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 		$wallet_config                         = array(
 			'coin_client'  => 'monero',
 			'request_coin' => 'XMR',
-			'multiplier'   => (float) $options[ 'multiplier_xmr' ],
+			'multiplier'   => CW_Validate::check_if_unset('multiplier_xmr', $options, 1.00 ),
 			'safe_address' => false,
 			'decimals'     => 8,
 			'fwd_addr_key'  => ''
