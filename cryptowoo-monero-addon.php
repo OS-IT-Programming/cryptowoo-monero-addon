@@ -33,6 +33,8 @@ add_action( 'cryptowoo_api_manager_loaded', function () {
 	new CW_License_Menu( __FILE__, 9713, CWXMR_VER );
 } );
 
+// TODO: Implement real block explorer api class
+
 /**
  * Plugin activation
  */
@@ -786,6 +788,8 @@ function cwxmr_link_to_address( $url, $address, $currency, $options ) {
  * @param            $options
  *
  * @return string
+ *
+ * // TODO: Remove when real block explorer api class for xmrchain is implemented.
  */
 function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $processing, $options ) {
 	if ( $batch_currency == "XMR" && cwxmr_get_processing_api( $options ) == "xmrchain.net" ) {
