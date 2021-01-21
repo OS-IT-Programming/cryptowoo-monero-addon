@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * License: GPLv2
  * Text Domain: cryptowoo-xmr-addon
  * Domain Path: /lang
- * WC tested up to: 3.2.5
+ * WC tested up to: 4.9.1
  */
 
 require_once( 'includes/monerowp/library.php' );
