@@ -181,10 +181,10 @@ function cwxmr_wallet_config( $wallet_config, $currency, $options ) {
 		$wallet_config                         = array(
 			'coin_client'  => 'monero',
 			'request_coin' => 'XMR',
-			'multiplier'   => CW_Validate::check_if_unset('multiplier_xmr', $options, 1.00 ),
+			'multiplier'   => CW_Validate::check_if_unset( 'multiplier_xmr', $options, 1.00 ),
 			'safe_address' => false,
 			'decimals'     => 8,
-			'fwd_addr_key'  => ''
+			'fwd_addr_key'  => '',
 		);
 		$wallet_config[ 'hdwallet' ]           = false; //CW_Validate::check_if_unset('cryptowoo_xmr_address', $options, false ) && CW_Validate::check_if_unset( 'cryptowoo_xmr_view_key', $options, false );
 		$wallet_config[ 'coin_protocols' ][]   = 'monero';
@@ -355,31 +355,36 @@ function save_last_checked_block_height( $order, $bc_height ) {
  * @return bool|stdClass[]
  */
 function verify_zero_conf( $payment_id, $order, $options ) {
-	// If order meta already has txid we will just check the tx instead of getting txs from mempool.
-	$txids = unserialize( $order->txids ) ;
+	// Get txs from mempool.
+	$tools            = new NodeTools();
+	$txs_from_mempool = $tools->get_mempool_txs();
+
+	// Could not find transactions from mempool? TODO: Error logging
+	if ( ! isset( $txs_from_mempool['data']['txs'] ) || ! is_array( $txs_from_mempool['data']['txs'] ) ) {
+		return false;
+	}
+
+	// Format txs from mempool array.
+	$txs_from_mempool = $txs_from_mempool['data']['txs'];
+	foreach ( $txs_from_mempool as $key => $value ) {
+		$txs_from_mempool[ $value['tx_hash'] ] = $value;
+		unset( $txs_from_mempool[ $key ] );
+	}
+
+	// If order meta already has txids, we will add them to the result if its not there already.
+	$txids = unserialize( $order->txids ); // TODO before CW-99 Refactor release: json_decode( $order->txids, true );
 	if ( ! empty( $txids ) ) {
 		foreach ( $txids as $txid => $value ) {
-			$txs_from_mempool[] = [ 'tx_hash' => $txid, 'payment_id' => $payment_id ];
+			if ( ! isset( $txs_from_mempool[ $txid ] ) ) {
+				$txs_from_mempool[ $txid ] = [ 'tx_hash' => $txid, 'payment_id' => $payment_id ];
+			}
 		}
 	}
 
-	// We will only get txs from mempool if no tx is already found.
-	if ( empty( $txids ) ) {
-		$tools            = new NodeTools();
-		$txs_from_mempool = $tools->get_mempool_txs();
+	$txs_found = find_txs_non_rpc( $options, $payment_id, $txs_from_mempool );
 
-		// Could not find transactions from mempool? TODO: Error logging
-		if ( ! isset( $txs_from_mempool[ 'data' ][ 'txs' ] ) || ! is_array( $txs_from_mempool[ 'data' ][ 'txs' ] ) ) {
-			return false;
-		}
-
-		$txs_from_mempool = $txs_from_mempool[ 'data' ][ 'txs' ];
-	}
-
-	$tx_found = find_tx_non_rpc( $options, $payment_id, $txs_from_mempool );
-
-	if ( is_array( $tx_found ) ) {
-		return convert_tx_to_insight_format( $order, $tx_found, false );
+	if ( is_array( $txs_found ) ) {
+		return convert_txs_to_insight_format( $order, $txs_found, false );
 	}
 
 	return false;
@@ -399,55 +404,61 @@ function verify_zero_conf( $payment_id, $order, $options ) {
  * @return bool|stdClass[]
  */
 function verify_non_rpc( $payment_id, $order, $options, $timestamp_start, $blocks_checked = 0 ) {
-	// If order meta already has txid we will just check the tx instead of getting txs from mempool.
-	$txids = unserialize( $order->txids );
+	// Get txs from block
+	$tools          = new NodeTools();
+	$bc_height      = $tools->get_last_block_height();
+	$bc_height_last = get_block_height_last_checked( $order );
+
+	if ( $bc_height_last == $bc_height ) {
+		// Do not check block if already checked
+		return false;
+	} else if ( $bc_height_last && $bc_height > $bc_height_last ) {
+		// Check the next block if we previously checked a block
+		$bc_height = $bc_height_last + 1;
+	} else if ( $bc_height_start = get_block_height_start( $order ) ) {
+		// Check the first block if we did not previously check a block
+		$bc_height = $bc_height_start;
+	}
+
+	// Could not find block height? TODO: Error logging
+	if ( - 1 === $bc_height ) {
+		return false;
+	}
+
+	$txs_from_block = $tools->get_txs_from_block( $bc_height );
+
+	// Could not find transactions from block? TODO: Error logging
+	if ( ! isset( $txs_from_block ) || ! is_array( $txs_from_block ) ) {
+		return false;
+	}
+
+	// Format txs from mempool array.
+	foreach ( $txs_from_block as $key => $value ) {
+		$txs_from_block[ $value['tx_hash'] ] = $value;
+		unset( $txs_from_block[ $key ] );
+	}
+
+	// If order meta already has txids, we will add them to the result if its not there already.
+	$txids = unserialize( $order->txids ); // TODO before CW-99 Refactor release: json_decode( $order->txids, true );
 	if ( ! empty( $txids ) ) {
 		foreach ( $txids as $txid => $value ) {
-			$txs_from_block[] = [ 'tx_hash' => $txid, 'payment_id' => $payment_id ];
+			if ( ! isset( $txs_from_block[ $txid ] ) ) {
+				$txs_from_block[ $txid ] = [ 'tx_hash' => $txid, 'payment_id' => $payment_id ];
+			}
 		}
 	}
 
-	// We will only get txs from block if no tx is already found.
-    if ( empty( $txids ) ) {
-		$tools          = new NodeTools();
-		$bc_height      = $tools->get_last_block_height();
-		$bc_height_last = get_block_height_last_checked( $order );
+	// Try to save last checked block height to order meta
+	if ( $bc_height_last < $bc_height && false === save_last_checked_block_height( $order, $bc_height ) ) {
+		// TODO: Error logging
+	}
 
-		if ( $bc_height_last == $bc_height ) {
-			// Do not check block if already checked
-			return false;
-		} else if ( $bc_height_last && $bc_height > $bc_height_last ) {
-			// Check the next block if we previously checked a block
-			$bc_height = $bc_height_last + 1;
-		} else if ( $bc_height_start = get_block_height_start( $order ) ) {
-			// Check the first block if we did not previously check a block
-			$bc_height = $bc_height_start;
-		}
-
-		// Could not find block height? TODO: Error logging
-		if ( - 1 === $bc_height ) {
-			return false;
-		}
-
-		$txs_from_block = $tools->get_txs_from_block( $bc_height );
-
-		// Could not find transactions from block? TODO: Error logging
-		if ( ! isset( $txs_from_block ) || ! is_array( $txs_from_block ) ) {
-			return false;
-		}
-
-		// Try to save last checked block height to order meta
-		if ( $bc_height_last < $bc_height && false === save_last_checked_block_height( $order, $bc_height ) ) {
-			// TODO: Error logging
-		}
-    }
-
-	$tx_found = find_tx_non_rpc( $options, $payment_id, $txs_from_block );
-	$seconds  = time() - $timestamp_start;
+	$txs_found = find_txs_non_rpc( $options, $payment_id, $txs_from_block );
+	$seconds   = time() - $timestamp_start;
 	$blocks_checked++;
 
-	if ( is_array( $tx_found ) ) {
-		return convert_tx_to_insight_format( $order, $tx_found, true );
+	if ( is_array( $txs_found ) ) {
+		return convert_txs_to_insight_format( $order, $txs_found, true );
 	} elseif ( $seconds > $options['processing_block_timeout_xmr'] ) {
 		// Do proper logging of block scan timeout.
 		if ( function_exists( 'get_current_screen' ) && is_object( get_current_screen() ) && 'shop_order' === get_current_screen()->id ) {
@@ -473,9 +484,9 @@ function verify_non_rpc( $payment_id, $order, $options, $timestamp_start, $block
  *
  * @return false|array
  */
-function find_tx_non_rpc( $options, $payment_id, $txs ) {
-	$tools    = new NodeTools();
-	$tx_found = false;
+function find_txs_non_rpc( $options, $payment_id, $txs ) {
+	$tools     = new NodeTools();
+	$txs_found = false;
 
 	foreach ( $txs as $tx ) {
 		// Decrypt payment id so we can match it. Match unencrypted payment id when scanning already found tx.
@@ -491,14 +502,13 @@ function find_tx_non_rpc( $options, $payment_id, $txs ) {
 		if ( $payment_id === $tx_payment_id ) {
 			$result = $tools->check_tx( $tx['tx_hash'], cwxmr_get_wallet_address( $options ), cwxmr_get_wallet_view_key( $options ) );
 			if ( $result ) {
-				$tx_found           = $tx;
-				$tx_found['output'] = $result;
-				break;
+			    $tx['output'] = $result;
+				$txs_found[]  = $tx;
 			}
 		}
 	}
 
-	return $tx_found;
+	return $txs_found;
 }
 
 /**
@@ -812,26 +822,32 @@ function cwxmr_cw_update_tx_details( $batch_data, $batch_currency, $orders, $pro
 }
 
 /**
- * Add extra data to tx for compatibility with insight tx check call
+ * Add extra data to txs for compatibility with insight tx check call
  *
  * @param stdClass $order
- * @param array    $tx
+ * @param array    $txs
  * @param bool     $confirmed
  *
  * @return stdClass[]
  */
-function convert_tx_to_insight_format( $order, $tx, $confirmed ) {
-	$tx                            = (object) $tx;
-	$tx->confirmations             = (int) $confirmed;
-	$tx->time                      = strtotime( $order->created_at );
-	$tx->txid                      = $tx->tx_hash;
-	$vout                          = new stdClass();
-	$vout->scriptPubKey            = new stdClass();
-	$vout->scriptPubKey->addresses = [ $order->address ];
-	$vout->value                   = (float) $tx->output[ 'amount' ] / 1e12;
-	$tx->vout                      = [ $vout ];
+function convert_txs_to_insight_format( $order, $txs, $confirmed ) {
+	$txs_formatted = [];
 
-	return [ $order->address => [ $tx ] ];
+	foreach ( $txs as $tx ) {
+		$tx                            = (object) $tx;
+		$tx->confirmations             = (int) $confirmed;
+		$tx->time                      = strtotime( $order->created_at );
+		$tx->txid                      = $tx->tx_hash;
+		$vout                          = new stdClass();
+		$vout->scriptPubKey            = new stdClass();
+		$vout->scriptPubKey->addresses = [ $order->address ];
+		$vout->value                   = (float) $tx->output['amount'] / 1e12;
+		$tx->vout                      = [ $vout ];
+
+		$txs_formatted[ $order->address ][] = $tx;
+	}
+
+	return $txs_formatted;
 }
 
 
