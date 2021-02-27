@@ -94,7 +94,7 @@ function cwxmr_hd_enabled() {
 
 if ( cwxmr_hd_enabled() ) {
 	// Coin symbol and name
-	add_filter( 'woocommerce_currencies', 'cwxmr_woocommerce_currencies', 10, 1 );
+	add_filter( 'cw_get_cryptocurrencies', 'cwxmr_woocommerce_currencies', 10, 1 );
 	add_filter( 'cw_get_currency_symbol', 'cwxmr_get_currency_symbol', 10, 2 );
 	add_filter( 'cw_get_enabled_currencies', 'cwxmr_add_coin_identifier', 10, 1 );
 
